@@ -1,0 +1,25 @@
+@media print {
+  header,
+  footer,
+  nav,
+  button,
+  .no-print,
+  [role='dialog'] {
+    display: none !important;
+  }
+  body {
+    background: white !important;
+    color: black !important;
+  }
+  .section {
+    padding-block: 1rem;
+  }
+  .card,
+  figure {
+    break-inside: avoid;
+  }
+  a[href^='http']::after {
+    content: ' (' attr(href) ')';
+    font-size: 0.8em;
+  }
+}

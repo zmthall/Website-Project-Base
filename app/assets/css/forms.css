@@ -1,0 +1,16 @@
+.input {
+  transition:
+    border-color 150ms ease,
+    box-shadow 150ms ease;
+}
+.input:not(:disabled):is(:hover, :focus-visible) {
+  box-shadow: 0 0 0 3px var(--field-glow);
+}
+.input:not(:disabled):not([aria-invalid='true']):is(:hover, :focus-visible) {
+  border-color: var(--field-hover-border);
+}
+@media (prefers-reduced-motion: reduce) {
+  .input {
+    transition: none;
+  }
+}

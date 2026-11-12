@@ -1,0 +1,115 @@
+.markdown-body .post-prose-h1,
+.markdown-body .post-prose-h2,
+.markdown-body .post-prose-h4 {
+  color: var(--brand-primary);
+  font-weight: 700;
+}
+.markdown-body .post-prose-h3 {
+  font-weight: 700;
+  text-decoration: underline;
+}
+.markdown-body .post-prose-p {
+  font-size: 1.125rem;
+  line-height: 1.65;
+}
+.markdown-body .post-prose-strong {
+  font-weight: 700;
+}
+.markdown-body .post-prose-ul {
+  list-style: disc;
+}
+.markdown-body .post-prose-ol {
+  list-style: decimal;
+}
+.markdown-body .post-prose-link {
+  color: var(--brand-primary);
+  text-decoration: underline;
+  text-underline-offset: 3px;
+}
+.post-prose-panel {
+  margin-block: 1.5rem;
+  padding: 1.5rem;
+  border: 1px solid var(--line);
+  border-radius: var(--radius);
+  background: var(--panel);
+}
+.post-callout {
+  border-left: 4px solid var(--brand-primary);
+}
+.post-references {
+  border-width: 1px 0 0;
+  border-radius: 0;
+}
+.post-center-layout {
+  display: flex;
+  justify-content: center;
+  align-items: center;
+  gap: 1rem;
+  flex-wrap: wrap;
+  margin-block: 1.5rem;
+}
+.post-cta-tile {
+  display: block;
+  text-align: center;
+  padding: 1.5rem;
+  border: 2px solid var(--line);
+  border-radius: var(--radius);
+  color: var(--brand-primary);
+}
+.post-prose-table {
+  overflow-x: auto;
+  margin-block: 1.5rem;
+  border: 1px solid var(--line);
+  border-radius: var(--radius);
+}
+.post-prose-table table {
+  width: 100%;
+  border-collapse: collapse;
+}
+.post-prose-table th {
+  background: var(--brand-primary);
+  color: var(--on-primary);
+}
+.post-prose-table td,
+.post-prose-table th {
+  padding: 1rem;
+  border: 1px solid var(--line);
+}
+.post-prose-table tbody tr:nth-child(even) {
+  background: var(--panel);
+}
+.markdown-body {
+  overflow-wrap: anywhere;
+  line-height: 1.8;
+}
+.markdown-body h1,
+.markdown-body h2,
+.markdown-body h3,
+.markdown-body h4 {
+  margin-block: 1.5rem 0.75rem;
+  scroll-margin-top: 8rem;
+}
+.markdown-body p,
+.markdown-body ul,
+.markdown-body ol,
+.markdown-body blockquote {
+  margin-block: 1rem;
+}
+.markdown-body ul,
+.markdown-body ol {
+  padding-left: 1.5rem;
+}
+.markdown-body img {
+  max-width: 100%;
+  height: auto;
+}
+.markdown-body pre {
+  overflow-x: auto;
+  padding: 1rem;
+  background: var(--panel);
+  border-radius: var(--radius);
+}
+.markdown-body blockquote {
+  padding-left: 1rem;
+  border-left: 3px solid var(--brand-primary);
+}

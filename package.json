@@ -1,0 +1,53 @@
+{
+  "name": "base-app",
+  "type": "module",
+  "private": true,
+  "scripts": {
+    "build": "npm run typecheck && nuxt build",
+    "dev": "nuxt dev --host 0.0.0.0",
+    "generate": "nuxt generate",
+    "preview": "nuxt preview",
+    "postinstall": "nuxt prepare",
+    "typecheck": "nuxt typecheck",
+    "test": "tsx --test tests/*.test.ts",
+    "test:ui": "playwright test",
+    "lint": "nuxt prepare && eslint . --max-warnings 0",
+    "lint:fix": "nuxt prepare && eslint . --fix",
+    "format": "prettier --write .",
+    "format:check": "prettier --check .",
+    "check": "npm run lint && npm test && npm run build"
+  },
+  "dependencies": {
+    "@nuxt/image": "^2.1.0",
+    "@nuxtjs/mdc": "^0.23.2",
+    "@tabler/icons-vue": "^3.49.0",
+    "markdown-it": "^15.0.2",
+    "nuxt": "^4.5.2",
+    "ofetch": "^1.5.1",
+    "reka-ui": "^2.11.0",
+    "vue": "^3.5.43",
+    "vue-router": "^5.3.1"
+  },
+  "devDependencies": {
+    "@axe-core/playwright": "^4.13.0",
+    "@nuxt/eslint": "^1.17.0",
+    "@playwright/test": "^1.64.0",
+    "@tailwindcss/vite": "^4.3.3",
+    "@types/markdown-it": "^14.2.0",
+    "@unhead/vue": "^3.4.2",
+    "eslint": "^10.12.0",
+    "prettier": "^3.9.10",
+    "tailwindcss": "^4.3.3",
+    "tsx": "^4.23.15",
+    "typescript": "~5.9.3",
+    "vue-tsc": "^3.3.13"
+  },
+  "imports": {
+    "#shared/*": "./shared/*.ts"
+  },
+  "engines": {
+    "node": ">=24.11 <25",
+    "npm": ">=12 <13"
+  },
+  "packageManager": "npm@12.0.2"
+}

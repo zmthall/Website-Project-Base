@@ -1,0 +1,64 @@
+@layer base {
+  html {
+    scroll-padding-top: 6rem;
+  }
+  body {
+    margin: 0;
+    background: var(--page);
+    color: var(--ink);
+    font-family: var(--font-body, Arial, sans-serif);
+    line-height: 1.65;
+  }
+  h1,
+  h2,
+  h3,
+  h4 {
+    font-family: var(--font-heading, Arial, sans-serif);
+    line-height: 1.12;
+    letter-spacing: -0.035em;
+    font-weight: 500;
+    text-wrap: balance;
+  }
+  h1 {
+    font-size: clamp(2.6rem, 5.4vw, 5.5rem);
+  }
+  h2 {
+    font-size: clamp(2rem, 3.5vw, 3.5rem);
+  }
+  h3 {
+    font-size: 1.35rem;
+  }
+  p {
+    max-width: 65ch;
+  }
+  button,
+  a,
+  input,
+  select,
+  textarea,
+  summary {
+    -webkit-tap-highlight-color: transparent;
+  }
+  button,
+  summary {
+    cursor: pointer;
+  }
+  :focus-visible {
+    outline: 2px solid var(--ink);
+    outline-offset: 4px;
+  }
+  ::selection {
+    background: var(--brand-secondary);
+    color: var(--on-secondary);
+  }
+  img,
+  video {
+    max-width: 100%;
+  }
+  button:disabled {
+    cursor: not-allowed;
+  }
+  [hidden] {
+    display: none !important;
+  }
+}

@@ -1,0 +1,56 @@
+@theme inline {
+  --color-primary: var(--brand-primary);
+  --color-background: var(--page);
+  --color-foreground: var(--ink);
+  --color-surface: var(--panel);
+  --color-muted: var(--muted);
+  --color-border: var(--line);
+  --font-sans: var(--font-body);
+}
+:root {
+  color-scheme: light;
+  --page: #fcfcfa;
+  --panel: #f1f2ed;
+  --ink: #202923;
+  --muted: #59625c;
+  --line: #d5dad3;
+  --field: #fff;
+  --field-border: #c5ccc6;
+  --field-hover-border: #8d9b90;
+  --field-glow: rgb(32 41 35 / 8%);
+  --danger: #b42318;
+  --success: #216440;
+  --shadow: 0 14px 50px #10201812;
+}
+:root[data-color-mode='dark'] {
+  color-scheme: dark;
+  --page: #161b18;
+  --panel: #222a25;
+  --ink: #edf1eb;
+  --muted: #b1bdb3;
+  --line: #48554c;
+  --field: rgb(255 255 255 / 5%);
+  --field-border: rgb(255 255 255 / 38%);
+  --field-hover-border: rgb(255 255 255 / 65%);
+  --field-glow: rgb(255 255 255 / 8%);
+  --danger: #ffb4aa;
+  --success: #a8dfb5;
+  --shadow: 0 14px 50px #0005;
+}
+@media (prefers-color-scheme: dark) {
+  :root[data-color-mode='system'] {
+    color-scheme: dark;
+    --page: #161b18;
+    --panel: #222a25;
+    --ink: #edf1eb;
+    --muted: #b1bdb3;
+    --line: #48554c;
+    --field: rgb(255 255 255 / 5%);
+    --field-border: rgb(255 255 255 / 38%);
+    --field-hover-border: rgb(255 255 255 / 65%);
+    --field-glow: rgb(255 255 255 / 8%);
+    --danger: #ffb4aa;
+    --success: #a8dfb5;
+    --shadow: 0 14px 50px #0005;
+  }
+}

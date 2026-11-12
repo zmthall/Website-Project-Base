@@ -1,0 +1,72 @@
+.admin-editor {
+  border: 0;
+  padding: 0;
+  min-width: 0;
+}
+.admin-editor label {
+  gap: 0.4rem;
+}
+.admin-toolbar,
+.admin-actions {
+  display: flex;
+  align-items: end;
+  flex-wrap: wrap;
+  gap: 0.8rem;
+}
+.admin-toolbar > .field {
+  display: grid;
+  gap: 0.4rem;
+  flex: 1 1 12rem;
+}
+.admin-table-wrap {
+  overflow-x: auto;
+  border: 1px solid var(--line);
+  border-radius: var(--radius);
+}
+.admin-table-wrap table {
+  width: 100%;
+  border-collapse: collapse;
+  text-align: left;
+}
+.admin-table-wrap th,
+.admin-table-wrap td {
+  padding: 1rem;
+  border-bottom: 1px solid var(--line);
+  vertical-align: top;
+  overflow-wrap: anywhere;
+  min-width: 7rem;
+}
+.admin-table-wrap td:nth-child(2) {
+  max-width: 24rem;
+}
+.admin-table-wrap thead {
+  background: var(--panel);
+}
+.admin-actions {
+  align-items: center;
+}
+.admin-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(min(100%, 18rem), 1fr));
+  gap: 1rem;
+}
+.admin-card {
+  display: block;
+  padding: 1.5rem;
+  border: 1px solid var(--line);
+  border-radius: var(--radius);
+  background: var(--panel);
+  text-decoration: none;
+}
+.admin-card h2 {
+  font-size: 1.4rem;
+  margin-bottom: 0.5rem;
+}
+.auth-settings {
+  max-width: 50rem;
+}
+.auth-settings fieldset {
+  border: 1px solid var(--line);
+  padding: 1.5rem;
+  border-radius: var(--radius);
+}

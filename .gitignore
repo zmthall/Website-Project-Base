@@ -1,0 +1,38 @@
+# Nuxt dev/build outputs
+.output
+.data
+.nuxt
+.nitro
+.cache
+dist
+
+# Node dependencies
+node_modules
+
+# Logs
+logs
+*.log
+
+# Misc
+.DS_Store
+.fleet
+.idea
+
+# Local env files
+.env
+.env.*
+!.env.example
+
+# Browser test output
+test-results
+playwright-report
+
+# Local provider configuration / downloaded server credentials
+config.json
+config.local.json
+integrations.local.json
+credentials/
+service-account*.json
+firebase-admin*.json
+*.pem
+*.key

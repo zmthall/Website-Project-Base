@@ -1,0 +1,66 @@
+.careers-hero {
+  display: grid;
+  grid-template-columns: minmax(0, 1.4fr) minmax(0, 1fr);
+  gap: clamp(2rem, 5vw, 5rem);
+  align-items: center;
+}
+.careers-lead {
+  font-size: 1.2rem;
+}
+.careers-panel {
+  padding: clamp(1.3rem, 3vw, 2.5rem);
+  border: 1px solid var(--line);
+  border-radius: var(--radius);
+  background: var(--panel);
+}
+.careers-band {
+  background: var(--panel);
+}
+.careers-steps {
+  padding: 0;
+  list-style: none;
+}
+.careers-step-number {
+  color: var(--muted);
+  font-size: 1.4rem;
+  font-weight: 700;
+}
+.job-summary {
+  display: -webkit-box;
+  -webkit-line-clamp: 3;
+  -webkit-box-orient: vertical;
+  overflow: hidden;
+}
+.careers-preserve {
+  white-space: pre-wrap;
+}
+.careers-apply-page {
+  max-width: 60rem;
+}
+.careers-application fieldset {
+  min-width: 0;
+  border: 1px solid var(--line);
+  padding: clamp(1rem, 3vw, 2rem);
+  border-radius: var(--radius);
+}
+.careers-application legend {
+  padding-inline: 0.5rem;
+  font-size: 1.2rem;
+  font-weight: 700;
+}
+.careers-honeypot {
+  position: absolute;
+  width: 1px;
+  height: 1px;
+  overflow: hidden;
+  clip-path: inset(50%);
+}
+.careers-page .grid > *,
+.careers-hero > * {
+  min-width: 0;
+}
+@media (max-width: 800px) {
+  .careers-hero {
+    grid-template-columns: minmax(0, 1fr);
+  }
+}

@@ -1,0 +1,25 @@
+# TODO [OPS-03]: Re-audit current locked dependencies, review compatible fixes and install pinned secret-scanning gates for staged changes/history/CI; document key rotation/revocation ownership. See docs/integration-audit.md.
+# TODO [OPS-02]: Run mandatory authenticated workflows in CI with isolated seeded accounts and test signed webhooks, cross-account access, distributed conflicts, backup restore and restart recovery. See docs/integration-audit.md.
+name: Validate template
+on: [push, pull_request]
+permissions:
+  contents: read
+jobs:
+  check:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 24
+          cache: npm
+      - run: npm install --global npm@12.0.2
+      - run: npm ci
+      - run: npm run check
+      - run: npx playwright install --with-deps chromium
+      - run: npm run test:ui
+      - uses: actions/upload-artifact@v4
+        if: failure()
+        with:
+          name: browser-test-results
+          path: test-results/
