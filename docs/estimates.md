@@ -17,9 +17,9 @@ The implemented path is `requested → sent → accepted / declined / expired`. 
 
 ## Configuration and integration boundaries
 
-Choices live in `shared/data/estimates.ts`; decisions/deposits are configured in `shared/data/workflows.ts`. Estimate and payment availability have separate site feature flags.
+Choices live in `feature-layers/estimates/shared/estimates.ts`; decisions/deposits are configured in `shared/data/workflows.ts`. Estimate and payment availability have separate site feature flags.
 
-Optional attachments use the existing upload adapters plus a server-owned `UploadResolver`. The picker is hidden until the uploads feature and resolver capability are configured. The server must verify ownership and ready/scanned state; a caller-supplied file ID is not enough. No storage provider is installed by default.
+Optional attachments use the active local private upload provider plus a server-owned `UploadResolver`. The picker appears only when the uploads feature and resolver are configured. The server verifies ownership, expiry and ready/inspected state; a caller-supplied file ID is not enough. Claimed attachment metadata is stored with the Estimate and the owning customer receives a private download link.
 
 ## What remains
 

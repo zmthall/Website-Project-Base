@@ -1,8 +1,6 @@
-import {
-  createAppointmentsApi,
-  createEstimatesApi,
-  createPaymentsApi,
-} from '../features/_shared/workflows';
+import { createAppointmentsApi } from '../../feature-layers/appointments';
+import { createEstimatesApi } from '../../feature-layers/estimates';
+import { createPaymentsApi } from '../../feature-layers/payments';
 import type { ApiClient } from '../api/types';
 export function useWorkflows() {
   const auth = useCustomerAuth();

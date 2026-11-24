@@ -2,21 +2,21 @@
 
 ## Implemented locally
 
-| Area                    | Routes / endpoints                                                              | Storage and current behavior                                                  | Open TODO IDs            |
-| ----------------------- | ------------------------------------------------------------------------------- | ----------------------------------------------------------------------------- | ------------------------ |
-| Admin/customer identity | `/admin/login`, `/customer/login`, `/api/admin/auth/*`, `/api/customer/auth/*`  | Separate opaque cookie sessions; registered customer accounts in SQLite       | AUTH-01–03               |
-| Blog/content management | `/admin/blog`, `/blog`, `/api/blog/*`, `/api/admin/manage/*`                    | SQLite Markdown and separate metadata; public visibility enforced server-side | DB-02, BLOG-01, ADMIN-01 |
-| Contact                 | `/contact`, `POST /api/contact`, `/admin/messages`                              | Private SQLite inquiries; no email delivery                                   | CONTACT-01               |
-| Newsletter              | `/newsletter`, `/api/content/newsletters`, `POST /api/newsletter/subscriptions` | Published issues and private requested subscriptions in SQLite                | NEWS-01                  |
-| Reviews                 | `/reviews`, `POST /api/reviews`, `/admin/reviews`                               | New submissions are pending; only published reviews appear publicly           | REV-01                   |
-| Careers                 | `/careers`, `/careers/apply`, `/admin/jobs`, `/admin/applications`              | Published openings and private applications in SQLite                         | CAREER-01                |
-| Events                  | `/events`, `/api/content/events`, `/admin/events`                               | Published CMS calendar; eligible records generate JSON-LD                     | EVENT-01, SEO-01         |
-| Appointments            | `/appointments`, `/customer/workflows`, `/api/workflows/appointments/*`         | Process-local availability/booking/rescheduling/cancellation simulation       | DB-01, BOOK-01–02        |
-| Estimates               | `/estimates`, `/admin/estimates`, `/customer/workflows`                         | Process-local requests, quotes, decisions and expiry                          | DB-01, EST-01–02         |
-| Payments                | `/customer/workflows`, `/api/workflows/payments/*`                              | Card-free, server-verified simulation; disabled by default                    | PAY-01–04                |
-| Uploads                 | Existing adapters and optional estimate picker                                  | No storage endpoints installed; picker requires a registered resolver         | UPLOAD-01, EST-02        |
-| Notifications           | Workflow outbox contracts                                                       | Queued in memory only; no worker or delivery provider                         | NOTIFY-01                |
-| Search                  | Local public-document helpers and remote adapter                                | No production remote index configured                                         | SEARCH-01                |
+| Area                    | Routes / endpoints                                                               | Storage and current behavior                                                  | Open TODO IDs            |
+| ----------------------- | -------------------------------------------------------------------------------- | ----------------------------------------------------------------------------- | ------------------------ |
+| Admin/customer identity | `/admin/login`, `/customer/login`, `/api/admin/auth/*`, `/api/customer/auth/*`   | Separate opaque cookie sessions; registered customer accounts in SQLite       | AUTH-01–03               |
+| Blog/content management | `/admin/blog`, `/blog`, `/api/blog/*`, `/api/admin/manage/*`                     | PostgreSQL records and separate metadata; public visibility enforced server-side | DB-02, BLOG-01, ADMIN-01 |
+| Contact                 | `/contact`, `POST /api/contact`, `/admin/messages`                               | Private SQLite inquiries; no email delivery                                   | CONTACT-01               |
+| Newsletter              | `/newsletter`, `/api/content/newsletters`, `POST /api/newsletter/subscriptions`  | Published issues and private requested subscriptions in SQLite                | NEWS-01                  |
+| Reviews                 | `/reviews`, `POST /api/reviews`, `/admin/reviews`                                | New submissions are pending; only published reviews appear publicly           | REV-01                   |
+| Careers                 | `/careers`, `/careers/apply`, `/admin/jobs`, `/admin/applications`               | Published openings and private applications in SQLite                         | CAREER-01                |
+| Events                  | `/events`, `/api/content/events`, `/admin/events`                                | Published CMS calendar; eligible records generate JSON-LD                     | EVENT-01, SEO-01         |
+| Appointments            | `/appointments`, `/customer/workflows`, `/api/workflows/appointments/*`          | Process-local availability/booking/rescheduling/cancellation simulation       | DB-01, BOOK-01–02        |
+| Estimates               | `/estimates`, `/admin/estimates`, `/customer/workflows`                          | Process-local requests, quotes, decisions and expiry                          | DB-01, EST-01–02         |
+| Payments                | `/customer/workflows`, `/api/workflows/payments/*`                               | Card-free, server-verified simulation; disabled by default                    | PAY-01–04                |
+| Uploads                 | Local private storage, inspection, owner-only endpoints and estimate attachments | Production malware scanner/object store and durable workflow retention        | UPLOAD-01, EST-02        |
+| Notifications           | Workflow outbox contracts                                                        | Queued in memory only; no worker or delivery provider                         | NOTIFY-01                |
+| Search                  | `/search`, `/api/search`, scoped public pages/content/events                     | Request-time local index; no hosted provider configured                       | SEARCH-01                |
 
 Read [the audit](integration-audit.md) for full ID descriptions. Existing SQLite persistence does not make a feature production-ready; memory workflows do not survive restarts.
 
@@ -24,7 +24,9 @@ Read [the audit](integration-audit.md) for full ID descriptions. Existing SQLite
 
 `shared/data/site.ts` declares availability. `useFeature` and shared navigation filter enabled UI; route middleware checks public feature paths. Server handlers independently check features and authorization. Flags do not grant permissions or install an adapter.
 
-`app/features/<name>/index.ts` exports each feature's public contracts/operations. `createFeatureApis` in `app/features/api.ts` constructs gated adapters from an injected `ApiClient`; the `$features` plugin exposes them within Nuxt. Contracts returned by an external adapter are not proof that the same endpoint is implemented locally.
+`feature-layers/registry.ts` is the build-time feature catalog. Each manifest records dependencies, guarded routes, owned implementation paths and shared integration seams. Nuxt extends every registered layer, and all implemented features now own their runtime code. See [Feature layers](feature-layers.md).
+
+A layer's `index.ts` exports its public contracts and operations. Shared feature transport, request state and form support live in `feature-layers/_shared`; `createFeatureApis` in `feature-layers/api.ts` constructs gated adapters from an injected `ApiClient`, and the `$features` plugin exposes them within Nuxt. Contracts returned by an external adapter are not proof that the same endpoint is implemented locally.
 
 Local admin/customer auth adapters deliberately use same-origin credentials and CSRF. `useAdminManagement` supplies the local admin transport. `useWorkflows` supplies the local customer workflow transport. The generic `$api` is anonymous by default and does not forward SSR cookies. See [application-api.md](application-api.md).
 

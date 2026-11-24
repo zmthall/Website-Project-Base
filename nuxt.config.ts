@@ -1,12 +1,14 @@
 // TODO [OPS-01]: Add trusted proxy/HTTPS configuration, tailored CSP and redacted metrics/error reporting; exercise provider timeout/retry behavior and prevent secrets in browser/build artifacts. See docs/integration-audit.md.
 import tailwindcss from '@tailwindcss/vite';
+import { featureLayerPaths } from './feature-layers/registry';
 import { integrationDefaults } from './server/config/integrations';
 import { site } from './shared/data/site';
 
 export default defineNuxtConfig({
+  extends: featureLayerPaths,
   compatibilityDate: '2025-07-15',
   ssr: true,
-  devtools: { enabled: true },
+  devtools: { enabled: process.env.NUXT_DISABLE_DEVTOOLS !== '1' },
   // Run nuxt typecheck in the build script; the Vite checker splits paths with spaces.
   typescript: { strict: true, typeCheck: false },
   sourcemap: { server: false, client: false },
@@ -16,7 +18,6 @@ export default defineNuxtConfig({
     '~/assets/css/admin.css',
     '~/assets/css/prose.css',
     '~/assets/css/forms.css',
-    '~/assets/css/careers.css',
   ],
   vite: {
     plugins: [tailwindcss()],
@@ -36,10 +37,6 @@ export default defineNuxtConfig({
     adminEmail: '',
     adminPassword: '',
     adminName: 'Administrator',
-    customerEmail: '',
-    customerPassword: '',
-    customerName: 'Customer',
-    customerDatabase: '.data/customer-auth.sqlite',
     indexingEnabled: false,
     public: { apiBase: '/api' },
   },
@@ -52,14 +49,6 @@ export default defineNuxtConfig({
     screens: { sm: 640, md: 768, lg: 1024, xl: 1280, '2xl': 1536 },
   },
   routeRules: {
-    '/customer': {
-      ssr: false,
-      headers: { 'X-Robots-Tag': 'noindex, nofollow', 'Cache-Control': 'no-store' },
-    },
-    '/customer/**': {
-      ssr: false,
-      headers: { 'X-Robots-Tag': 'noindex, nofollow', 'Cache-Control': 'no-store' },
-    },
     '/admin': {
       ssr: false,
       headers: { 'X-Robots-Tag': 'noindex, nofollow', 'Cache-Control': 'no-store' },

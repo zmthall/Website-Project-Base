@@ -17,9 +17,9 @@ An unavailable query selection produces an explanation and general-application f
 
 ## Configuration and boundaries
 
-Use `site.features.careers`, `shared/data/careers.ts` and `NUXT_MANAGEMENT_DATABASE`. The reference application's company-specific driving/background checks and retention promises were not copied. No document bytes or application emails are handled by this flow.
+Use `site.features.careers`, `feature-layers/careers/app/data/careers.ts` and `NUXT_MANAGEMENT_DATABASE`. The reference application's company-specific driving/background checks and retention promises were not copied. No document bytes or application emails are handled by this flow.
 
-The older `app/features/careers/api.ts` is an external-backend contract; its upload-ID application model is not the same as this local form. Reconcile the chosen contract under API-01 before connecting it to another backend.
+The contract in `feature-layers/careers/app/features/careers/api.ts` targets a future external backend; its upload-ID application model is not the same as this local form. Reconcile the chosen contract under API-01 before connecting it to another backend.
 
 ## What remains
 

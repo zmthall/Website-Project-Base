@@ -2,7 +2,7 @@
 
 ## Implemented locally
 
-`features.newsletter` controls `/newsletter`, related shared navigation, homepage preview, banner and discovery eligibility. Presentation options and sample issue data are in `shared/data/newsletter.ts`.
+`features.newsletter` controls `/newsletter`, related shared navigation, homepage preview, banner and discovery eligibility. Presentation options and sample issue data are in `feature-layers/newsletter/app/data/newsletter.ts`.
 
 Administrators create Markdown issues at `/admin/newsletters`. The public API `/api/content/newsletters` exposes only published issues whose publication time has arrived. `/newsletter` renders those issues with the shared blog MDC renderer. `useNewsletterContent` supplies the latest published issue to the homepage/banner; sample content is used when no issue data is available. This fallback is presentation, not provider delivery evidence.
 
@@ -16,7 +16,7 @@ No confirmation email is sent. The external newsletter adapter exposes additiona
 
 ## Configuration and remaining work
 
-- Public presentation: `shared/data/newsletter.ts`, `site.features.newsletter`.
+- Public presentation: `feature-layers/newsletter/app/data/newsletter.ts`, `site.features.newsletter`.
 - Persistence: `NUXT_MANAGEMENT_DATABASE`.
 - Reserved provider values: `NUXT_INTEGRATIONS_NEWSLETTER_*` and transactional mail settings; entering values does not connect them.
 - NEWS-01: double opt-in, expiring tokens, preferences ownership, unsubscribe/suppression, signed webhooks and provider synchronization.

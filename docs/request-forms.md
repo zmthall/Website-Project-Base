@@ -8,7 +8,7 @@ Availability is calculated by the server from business timezone, working days/ho
 
 A stable request key prevents duplicate booking after retries. Server overlap/version checks protect booking, rescheduling and cancellation. `/customer/workflows` presents owned records and replacement times. A failed reschedule preserves the old appointment. Confirmations/reminders are outbox jobs only; no provider booking or email occurs.
 
-Options live in `shared/data/appointments.ts`; scheduling rules live in `shared/data/workflows.ts`. Workflow records reset on restart. Endpoint/contracts: [workflows.md](workflows.md).
+Options and scheduling rules live together in `feature-layers/appointments/shared/appointments.ts`. The page, customer manager, client contracts/API, server endpoint/service, and dedicated tests are colocated in that layer. Workflow records reset on restart. Endpoint/contracts: [workflows.md](workflows.md).
 
 ## Contact: implemented locally
 

@@ -1,29 +1,12 @@
 import { test } from 'node:test';
 import assert from 'node:assert/strict';
 import { effectScope } from 'vue';
-import { createFeatureApis } from '../app/features/api';
-import type { ApiClient, ApiRequestOptions } from '../app/api/types';
 import { ApiError } from '../app/api/errors';
-import { resourceID } from '../app/features/_shared/transport';
-import { useFeatureRequest } from '../app/features/_shared/useFeatureRequest';
-import { searchDocuments } from '../app/features/search/utils';
-import { validateUploads } from '../app/features/uploads/utils';
-import { useUploads } from '../app/features/uploads/useUploads';
-const key = 'test-idempotency-key-1234';
-test('feature flags block requests and submissions retain idempotency keys', async () => {
-  const calls: { path: string; options?: ApiRequestOptions }[] = [];
-  const api: ApiClient = async <T>(path: string, options?: ApiRequestOptions) => {
-    calls.push({ path, options });
-    return {} as T;
-  };
-  const inquiry = { name: 'A', email: 'a@b.test', message: 'Hello' };
-  await assert.rejects(
-    createFeatureApis(api).contact.submit(inquiry, { idempotencyKey: key }),
-    (e: unknown) => e instanceof ApiError && e.code === 'feature-disabled',
-  );
-  assert.equal(calls.length, 0);
-  await createFeatureApis(api, { contact: true }).contact.submit(inquiry, { idempotencyKey: key });
-  assert.equal(new Headers(calls[0]?.options?.headers).get('Idempotency-Key'), key);
+import { resourceID } from '../feature-layers/_shared/transport';
+import { useFeatureRequest } from '../feature-layers/_shared/useFeatureRequest';
+import { parseSearchInput, searchDocuments } from '../feature-layers/search';
+import { useUploads, validateUploads } from '../feature-layers/uploads';
+test('resource IDs reject traversal paths', () => {
   assert.throws(() => resourceID('../other'));
 });
 test('request state discards stale responses and keeps cancellation separate from success', async () => {
@@ -74,6 +57,57 @@ test('search normalizes, filters, paginates, and excludes unsafe paths', () => {
   assert.equal(searchDocuments(docs, { q: 'x' }).total, 0);
   assert.equal(searchDocuments(docs, { q: 'local', type: 'article' }).total, 0);
 });
+test('search prefixes select public website content scopes', () => {
+  assert.deepEqual(parseSearchInput('@  service one '), { q: 'service one', scope: 'page' });
+  assert.deepEqual(parseSearchInput('#launch news'), { q: 'launch news', scope: 'content' });
+  assert.deepEqual(parseSearchInput('* community day'), { q: 'community day', scope: 'event' });
+  assert.deepEqual(parseSearchInput('service one'), { q: 'service one', scope: 'all' });
+
+  const documents = [
+    {
+      id: 'page',
+      title: 'Launch information',
+      description: 'A website page',
+      path: '/about',
+      type: 'page',
+      scope: 'page',
+    },
+    {
+      id: 'post',
+      title: 'Launch news',
+      description: 'A published post',
+      path: '/blog/launch',
+      type: 'blog',
+      scope: 'content',
+    },
+    {
+      id: 'event',
+      title: 'Launch event',
+      description: 'A public gathering',
+      path: '/events',
+      type: 'event',
+      scope: 'event',
+    },
+  ] as const;
+
+  assert.deepEqual(
+    searchDocuments([...documents], { q: '@launch' }).items.map(({ id }) => id),
+    ['page'],
+  );
+  assert.deepEqual(
+    searchDocuments([...documents], { q: '#launch' }).items.map(({ id }) => id),
+    ['post'],
+  );
+  assert.deepEqual(
+    searchDocuments([...documents], { q: '*launch' }).items.map(({ id }) => id),
+    ['event'],
+  );
+  assert.deepEqual(
+    searchDocuments([...documents], { q: '*events' }).items.map(({ id }) => id),
+    ['event'],
+  );
+  assert.equal(searchDocuments([...documents], { q: 'launch' }).total, 3);
+});
 test('uploads enforce size/type/count and retry a failed transfer with the same mutation key', async () => {
   const policy = { maxBytes: 20, maxFiles: 1, mimeTypes: ['text/plain'], extensions: ['.txt'] };
   assert.ok(
@@ -81,6 +115,7 @@ test('uploads enforce size/type/count and retry a failed transfer with the same 
   );
   let attempts = 0;
   const keys: string[] = [];
+  const removed: string[] = [];
   const scope = effectScope();
   const upload = scope.run(() =>
     useUploads(
@@ -103,7 +138,9 @@ test('uploads enforce size/type/count and retry a failed transfer with the same 
         status: async () => {
           throw new Error('not called');
         },
-        remove: async () => {},
+        remove: async (uploadId) => {
+          removed.push(uploadId);
+        },
       },
       policy,
       async (_path, _file, _signal, progress) => {
@@ -120,5 +157,47 @@ test('uploads enforce size/type/count and retry a failed transfer with the same 
   await upload.retry(id);
   assert.equal(upload.items.value[0]?.status, 'complete');
   assert.equal(keys[0], keys[1]);
+  await upload.remove(id);
+  assert.deepEqual(removed, ['upload-1']);
+  assert.equal(upload.items.value.length, 0);
+  scope.stop();
+});
+test('uploads surface server inspection rejection as a failed item', async () => {
+  const scope = effectScope();
+  const upload = scope.run(() =>
+    useUploads(
+      {
+        initialize: async () => ({
+          id: 'rejected-upload',
+          contentPath: '/api/uploads/rejected-upload/content',
+          expiresAt: '2099-01-01',
+        }),
+        complete: async () => ({
+          id: 'rejected-upload',
+          name: 'unsafe.pdf',
+          size: 8,
+          mimeType: 'application/pdf',
+          status: 'rejected',
+        }),
+        status: async () => {
+          throw new Error('not called');
+        },
+        remove: async () => {},
+      },
+      {
+        maxBytes: 20,
+        maxFiles: 1,
+        mimeTypes: ['application/pdf'],
+        extensions: ['.pdf'],
+      },
+      async () => {},
+    ),
+  )!;
+  upload.add([new File(['%PDF-1'], 'unsafe.pdf', { type: 'application/pdf' })]);
+
+  await upload.start(upload.items.value[0]!.key);
+
+  assert.equal(upload.items.value[0]?.status, 'failed');
+  assert.match(upload.items.value[0]?.error ?? '', /rejected/i);
   scope.stop();
 });

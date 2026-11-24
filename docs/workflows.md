@@ -4,10 +4,10 @@ Appointments, estimates and payments now have typed contracts, API adapters, pro
 
 ## Configuration and access
 
-- `shared/data/workflows.ts`: timezone, lead time, horizon, weekdays, closures, duration, office/remote locations, providers, quote decisions/deposits and demo payment catalog.
-- `shared/data/appointments.ts`: service and meeting labels. Service IDs must also have a duration in workflow configuration.
-- `shared/data/estimates.ts`: project, budget and timing options.
-- `site.features.appointments`, `estimates`, `payments`, `uploads`: server-enforced endpoint gates. Payments and uploads remain off by default. Enable payments explicitly to see the card-free simulator under `/customer/workflows`.
+- `feature-layers/appointments/shared/appointments.ts`: appointment timezone, lead time, horizon, weekdays, closures, duration, locations, providers, service labels and meeting choices.
+- `shared/data/workflows.ts`: cross-feature demo mode, quote decisions/deposits and demo payment catalog.
+- `feature-layers/estimates/shared/estimates.ts`: project, budget and timing options.
+- `site.features.appointments`, `estimates`, `payments`, `uploads`: server-enforced endpoint gates. Uploads uses the enabled local private provider; payments remains off by default.
 - Creating and managing requests requires the existing local customer login. Resources belong to the server-authenticated account ID, never an email or owner ID supplied by the browser. Customer mutations require their session's `X-CSRF-Token`. The existing admin role and separate CSRF token are required for quotes.
 - Clients keep a stable `Idempotency-Key` for an unchanged request. Reusing a key with different input is a conflict. Mutations use versions to reject stale updates. Inputs use integer minor currency units; the client cannot choose checkout totals.
 
@@ -33,7 +33,7 @@ All paths below start with `/api/workflows`. JSON responses have `Cache-Control:
 | POST       | `/payments/:id/verify`                                                             | Explicit status refresh                                                                    |
 | POST       | `/payments/:id/simulate`                                                           | Demo only: pending/succeeded/declined/canceled/failed outcomes, CSRF and ownership checked |
 
-See `shared/types/workflows.ts` for complete request/response, repository, notification, upload and provider contracts. API adapter exports live in each feature's `index.ts`; `useWorkflows` supplies the local cookie/CSRF transport. External token transports can be injected separately.
+Appointment request/response contracts and its API adapter are exported by `feature-layers/appointments/index.ts`. Cross-feature repository, notification, estimate, upload and payment contracts remain in `shared/types/workflows.ts`; `useWorkflows` supplies the local cookie/CSRF transport. External token transports can be injected separately.
 
 ## Scheduling
 
@@ -45,7 +45,7 @@ Synchronous check-and-write operations are atomic **within one process**. Resche
 
 Status contract: `requested`, `draft`, `sent`, `accepted`, `declined`, `expired`, `canceled`. The implemented path is requested → sent → accepted/declined/expired. Draft/canceled are reserved for later authoring/withdrawal flows; no public client can assign arbitrary status. Admins prepare line-item quotes at `/admin/estimates` (the simple editor offers one line; the API accepts up to 50). Totals and deposits are recalculated and bounded on the server. Sent quotes expire before a decision; accepted quotes remain accepted. An expired quote needs a new request in this prototype.
 
-Optional uploads use `UploadResolver`, existing upload adapters/transfer controls and `FormsEstimateAttachments`. A startup integration calls `workflowService.configureUploads(resolver)` and implements `/api/uploads` initialization/content/complete operations. The resolver must check current ownership, ready/scanned status, expiry and permitted file policy. Until then capability `uploads` is false, the picker is hidden, and supplied attachment IDs fail closed. No fake file receipt or stored-byte claim is made. A customer cannot attach someone else's upload merely by knowing its ID.
+Optional uploads use `UploadResolver`, the local private upload endpoints, transfer controls and `FormsEstimateAttachments`. The Uploads Nitro plugin registers the resolver at startup. It checks current ownership, ready/inspected status, expiry and permitted file policy; supplied foreign, expired or rejected IDs fail closed. Claimed Estimate files receive extended retention and cannot be removed through the omission endpoint. A customer cannot attach someone else's upload merely by knowing its ID. See [uploads.md](uploads.md).
 
 Payments accept only a configured one-time product ID or an owned, accepted estimate with a positive deposit. Concurrent/retried deposit creation reuses a pending session and rejects already-paid deposits. Status polling verifies server-owned provider state. Receipts are created once after verified success, never from a redirect/query argument. Declines/failures/cancellations have no paid receipt; pending sessions expire. Retrying a terminal failed deposit uses a new idempotency key. Invoice references are not implemented because there is no invoice model; add an owner-checked authoritative invoice resolver before exposing them.
 

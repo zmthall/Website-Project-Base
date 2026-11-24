@@ -1,9 +1,10 @@
 // TODO [SEO-01]: Build sitemap entries from all authoritative published records and validate canonical origin/schema; omit drafts, samples, expired/private paths and unsupported detail routes. See docs/integration-audit.md.
 import { isFeaturePathEnabled } from '../../shared/utils/features';
-import { blogStore } from '../utils/blog-store';
+import { blogStore } from '../../feature-layers/blog/server/utils/blog-store';
 import { site } from '../../shared/data/site';
 import { demoSection } from '../../app/data/demo';
 import { indexingAllowed, sitemapXML } from '../../shared/utils/discovery';
+import { featureDefinitions } from '../../feature-layers/registry';
 export default defineEventHandler(async (event) => {
   setHeader(event, 'Content-Type', 'application/xml; charset=utf-8');
   const enabled = indexingAllowed(useRuntimeConfig(event).indexingEnabled, site.url);
@@ -13,8 +14,6 @@ export default defineEventHandler(async (event) => {
     ...[
       '/',
       '/about',
-      '/contact',
-      '/appointments',
       '/estimates',
       '/faq',
       '/services',
@@ -27,6 +26,7 @@ export default defineEventHandler(async (event) => {
       '/newsletter',
       '/privacy',
       '/terms',
+      ...featureDefinitions.flatMap(({ sitemapRoutes }) => sitemapRoutes ?? []),
     ].map((path) => ({ path })),
     ...(demoSection.services ?? []).map((service) => ({ path: `/services/${service.slug}` })),
     ...(demoSection.articles ?? []).map((article) => ({

@@ -6,7 +6,11 @@ export type ResourceKind =
   | 'reviews'
   | 'subscribers'
   | 'jobs'
-  | 'applications';
+  | 'applications'
+  | 'business'
+  | 'faqs'
+  | 'media'
+  | 'ratings';
 export type ManagedValue = string | number | boolean;
 export interface ManagedRecord {
   id: string;
@@ -37,15 +41,22 @@ export interface EditorField {
     | 'select';
   required?: boolean;
   options?: string[];
+  min?: number;
+  max?: number;
+  step?: number;
   help?: string;
 }
 export interface ResourceDefinition {
   title: string;
   singular: string;
   description: string;
-  feature: string;
+  feature?: string;
   canCreate: boolean;
   fields: EditorField[];
+  primaryFieldLabel?: string;
+  manageLabel?: string;
+  editableFields?: string[];
+  immutableFields?: string[];
 }
 export interface RenderedMarkdown {
   source: string;

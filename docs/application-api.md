@@ -25,7 +25,7 @@ Page / shared controls
 | `useWorkflows`                   | Local customer workflows                                    | Cookie ownership and customer CSRF; public availability reads need no session                                |
 | Page-local `useFetch` / `$fetch` | Published reads and implemented public submission endpoints | Handler-specific feature, consent and abuse checks                                                           |
 
-Do not assume an external feature factory's complete endpoint set exists locally. Newsletter confirmation/preferences, remote search and upload storage remain examples of unconnected operations. API-01 tracks route/adapter reconciliation.
+Do not assume an external feature factory's complete endpoint set exists locally. Newsletter confirmation/preferences, hosted search providers and hosted upload providers remain examples of unconnected operations. Local public search is available at `/api/search`, and local private upload endpoints are available at `/api/uploads`; API-01 tracks the remaining route/adapter reconciliation.
 
 ## Generic client contract
 
@@ -33,7 +33,7 @@ Capture `$api` inside setup, a composable or a plugin. Use `useAsyncData` for SS
 
 The generic client sets a 15-second default timeout, accepts an override and AbortSignal, refuses redirects and disables automatic retries. Ofetch handles JSON, query arrays and FormData boundaries. Credentials are omitted unless a deliberately different transport is supplied.
 
-Bearer integrations can inject `getToken` and an `onUnauthorized` notification. `{ auth: true }` requests opt in to token attachment. Refresh/retry/navigation remain the auth layer's responsibility. Never forward arbitrary incoming cookies to a separately configured backend.
+Bearer integrations can inject `getToken` and an `onUnauthorized` notification. `{ auth: true }` requests opt in to token attachment. Refresh/retry/navigation remain the owning identity layer's responsibility. Never forward arbitrary incoming cookies to a separately configured backend.
 
 `ApiError` normalizes HTTP/network/timeout/cancellation failures into local safe text, optional status/code and field errors. Raw provider diagnostics and headers must not be displayed. Local workflow handlers currently return bounded domain validation/status messages; production providers need redacted error translation under API-02/OPS-01.
 

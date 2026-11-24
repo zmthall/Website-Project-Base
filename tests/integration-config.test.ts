@@ -41,6 +41,64 @@ test('all integration env placeholders match declared private defaults and secre
   assert.match(nuxt, /integrations: integrationDefaults/);
   assert.doesNotMatch(nuxt, /public:\s*\{[^}]*integrations/s);
 });
+
+test('database integration exposes a private configuration parser', async () => {
+  const integrationConfig = await import('../server/utils/integration-config');
+  assert.equal(typeof integrationConfig.parseDatabaseConfig, 'function');
+});
+
+test('database integration exposes a PostgreSQL adapter factory', async () => {
+  const integrationConfig = await import('../server/utils/integration-config');
+  assert.equal(typeof integrationConfig.createPostgresAdapter, 'function');
+});
+
+test('database integration exposes server lifecycle and readiness functions', async () => {
+  const integrationConfig = await import('../server/utils/integration-config');
+  assert.equal(typeof integrationConfig.initializeDatabase, 'function');
+  assert.equal(typeof integrationConfig.stopDatabase, 'function');
+  assert.equal(typeof integrationConfig.databaseReadiness, 'function');
+  assert.equal(typeof integrationConfig.databaseQuery, 'function');
+  assert.equal(typeof integrationConfig.databaseTransaction, 'function');
+});
+
+test('database configuration normalizes a selected PostgreSQL adapter', async () => {
+  const { parseDatabaseConfig } = await import('../server/utils/integration-config');
+  assert.deepEqual(
+    parseDatabaseConfig({
+      driver: 'postgres',
+      url: 'postgresql://website_app:secret@127.0.0.1:5432/website_base',
+      tls: 'disable',
+      poolMax: '7',
+    }),
+    {
+      driver: 'postgres',
+      url: 'postgresql://website_app:secret@127.0.0.1:5432/website_base',
+      tls: 'disable',
+      poolMax: 7,
+    },
+  );
+});
+
+test('database configuration rejects unsupported or incomplete selections', async () => {
+  const { parseDatabaseConfig } = await import('../server/utils/integration-config');
+  const base = {
+    driver: 'postgres',
+    url: 'postgresql://website_app:secret@127.0.0.1:5432/website_base',
+    tls: 'disable',
+    poolMax: 10,
+  };
+  for (const invalid of [
+    { ...base, driver: 'mysql' },
+    { ...base, url: '' },
+    { ...base, url: 'https://database.example.test' },
+    { ...base, tls: 'sometimes' },
+    { ...base, poolMax: 0 },
+    { ...base, poolMax: 'many' },
+  ]) {
+    assert.throws(() => parseDatabaseConfig(invalid), /database/i);
+  }
+});
+
 test('audit TODO IDs have real source anchors and no dangling linked files', () => {
   const audit = readFileSync('docs/integration-audit.md', 'utf8');
   const rows = [...audit.matchAll(/^\|\s*([A-Z]+-\d+)\s*\|.*$/gm)];

@@ -1,5 +1,6 @@
 <script setup lang="ts">
-import { contactForm, issueForm, surveyForm } from '../../data/demo';
+import { issueForm, surveyForm } from '../../data/demo';
+import { contactForm } from '../../../feature-layers/contact';
 import type { FormValue } from '../../types/forms';
 const chosen = ref('contact');
 const schemas = { contact: contactForm, issue: issueForm, survey: surveyForm };

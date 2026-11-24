@@ -27,7 +27,7 @@ That separation lets you reuse the foundation across clients without putting bus
 - Configurable themes, light/dark modes, brand palettes, fonts, and section variants.
 - Shared form controls and accessible interaction primitives built with Reka UI.
 - Local admin authentication and separate customer registration/sign-in.
-- SQLite-backed content management, private submissions, and career applications.
+- PostgreSQL-backed public content management, plus scoped local private submissions and career applications.
 - Database-stored Markdown blogs with custom prose components and live previews.
 - A careers landing page, job details, and a separate application flow.
 - In-memory appointment, estimate, and payment simulations.
@@ -87,14 +87,14 @@ Optional feature routes return 404 when their feature is disabled. Showcase exam
 | Public website                | Configurable pages, sections, navigation, responsive media, forms, and SEO                                     | Approved client content/assets, policies, and deployment review                           |
 | Administrator access          | Environment-provisioned account, guarded admin pages/APIs, CSRF checks, session expiry                         | Shared session/rate-limit storage, managed provisioning, MFA, and audit trails            |
 | Customer accounts             | Registration, sign-in/out, salted scrypt password hashes, SQLite accounts                                      | Email verification/recovery, expanded account management, optional identity providers     |
-| Blog and newsletter issues    | SQLite content, publishing controls, SEO fields, shared Markdown renderer, live editor                         | Editorial revisions, production media storage, delivery integrations                      |
+| Blog and public content       | PostgreSQL content, publishing controls, SEO fields, shared Markdown renderer, live editor                     | Editorial revisions, production media storage, delivery integrations                      |
 | Contact, reviews, subscribers | Private inquiries, review moderation, subscription requests with consent                                       | Provider delivery/synchronization, stronger abuse controls, retention policies            |
 | Careers                       | Published openings, details modal, application notice/form, private admin review                               | Applicant retention, notifications, optional private document uploads                     |
 | Events                        | Published CMS events, calendar, complete-record structured data, labeled sample fallback                       | Registration/capacity only if explicitly added later                                      |
 | Appointments                  | Availability rules, timezone handling, provider/location selection, conflict checks, rescheduling/cancellation | Durable transactions, cross-instance coordination, actual scheduling/delivery integration |
-| Estimates                     | Private requests, admin quotes, server totals, expiry, customer decisions, deposit references                  | Durable storage, expanded quote authoring, real uploads/payments                          |
+| Estimates                     | Private requests, attachments, admin quotes, server totals, expiry, customer decisions, deposit references     | Durable storage, expanded quote authoring, hosted payments                                |
 | Payments                      | Card-free demo provider, server-owned amounts, verified demo status, receipts, retry protection                | Hosted processor, signed webhooks, durable reconciliation; disabled by default            |
-| Uploads and notifications     | Upload contracts/resolver seam, transfer controls, notification outbox contracts                               | Private object storage/scanning and delivery workers                                      |
+| Uploads and notifications     | Local private uploads, inspection, owner-only downloads, quotas/expiry; notification outbox contracts          | Production scanner/object storage and delivery workers                                    |
 
 **Demo bookings, quotes, and payments do not make real appointments, binding offers, or charges. No email/SMS delivery is configured.** Workflow records and queued notifications reset when the server restarts.
 
@@ -104,18 +104,18 @@ See [workflow foundations](docs/workflows.md), [remaining work](docs/remaining-w
 
 ### Public content and branding
 
-| File                                                       | What to change                                                       |
-| ---------------------------------------------------------- | -------------------------------------------------------------------- |
-| [shared/data/site.ts](shared/data/site.ts)                 | Site name, canonical origin, locale, SEO defaults, and feature flags |
-| [shared/data/business.ts](shared/data/business.ts)         | Business identity, contact information, locations, and hours         |
-| [shared/data/navigation.ts](shared/data/navigation.ts)     | Menus, footer groups, and actions                                    |
-| [app/theme/config.ts](app/theme/config.ts)                 | Theme, palette, fonts, modes, motion, packs, and section choices     |
-| [app/theme/sections.ts](app/theme/sections.ts)             | Section component registry and variants                              |
-| [shared/data/careers.ts](shared/data/careers.ts)           | Careers landing-page content                                         |
-| [shared/data/appointments.ts](shared/data/appointments.ts) | Appointment labels and meeting choices                               |
-| [shared/data/estimates.ts](shared/data/estimates.ts)       | Project, budget, and timeline choices                                |
-| [shared/data/workflows.ts](shared/data/workflows.ts)       | Demo scheduling rules, quote options, and payment catalog            |
-| [app/data/demo.ts](app/data/demo.ts)                       | Example content used by the generic demonstration                    |
+| File                                                                                                     | What to change                                                       |
+| -------------------------------------------------------------------------------------------------------- | -------------------------------------------------------------------- |
+| [shared/data/site.ts](shared/data/site.ts)                                                               | Site name, canonical origin, locale, SEO defaults, and feature flags |
+| [shared/data/business.ts](shared/data/business.ts)                                                       | Business identity, contact information, locations, and hours         |
+| [shared/data/navigation.ts](shared/data/navigation.ts)                                                   | Menus, footer groups, and actions                                    |
+| [app/theme/config.ts](app/theme/config.ts)                                                               | Theme, palette, fonts, modes, motion, packs, and section choices     |
+| [app/theme/sections.ts](app/theme/sections.ts)                                                           | Section component registry and variants                              |
+| [feature-layers/careers/app/data/careers.ts](feature-layers/careers/app/data/careers.ts)                 | Careers landing-page content                                         |
+| [feature-layers/appointments/shared/appointments.ts](feature-layers/appointments/shared/appointments.ts) | Appointment labels and scheduling rules                              |
+| [feature-layers/estimates/shared/estimates.ts](feature-layers/estimates/shared/estimates.ts)             | Project, budget, and timeline choices                                |
+| [shared/data/workflows.ts](shared/data/workflows.ts)                                                     | Shared demo mode, quote options, and payment catalog                 |
+| [app/data/demo.ts](app/data/demo.ts)                                                                     | Example content used by the generic demonstration                    |
 
 `app.config.ts` exposes the serializable UI defaults. Everything in public site/theme configuration must be safe for visitors to read. Dynamic backend records belong in repositories, not static content files.
 
@@ -153,7 +153,7 @@ See [configuration and secrets](docs/configuration-and-secrets.md) for the full 
 
 ### Administrator access
 
-Keep `features.auth: 'local'`, set these values in `.env`, and restart the server:
+Keep `features.administrator: 'local'`, set these values in `.env`, and restart the server:
 
 ```dotenv
 NUXT_ADMIN_EMAIL=
@@ -191,7 +191,7 @@ Local sessions default to eight hours with a 30-minute idle timeout; administrat
 
 ### Markdown publishing
 
-Create a post at `/admin/blog`, enter its content and metadata, then publish it. Blog Markdown is stored in SQLite with separate title, slug, summary, author, media, SEO, and publication fields; posts are **not** stored as `.md` files.
+Create a post at `/admin/blog`, enter its content and metadata, then publish it. Blog Markdown is stored in PostgreSQL with separate title, slug, summary, author, media, SEO, and publication fields; posts are **not** stored as `.md` files.
 
 The editor and public blog pages share Nuxt MDC and the custom components in `app/components/prose`. The toolbar inserts headings, formatting, tables, code, and custom blocks. A live preview updates as you type, with optional synchronized scrolling. Drafts and future publication dates are excluded from public results.
 
@@ -220,7 +220,7 @@ Applications are saved privately and reviewed at `/admin/applications`. Submitte
 5. As an admin, prepare a demo quote at `/admin/estimates`.
 6. Return to the customer account to review and accept or decline it.
 
-Payment simulation is available only when `site.features.payments` is enabled. It supports configured one-time items and accepted-estimate deposits without collecting card details. Notification jobs are queued only. Optional estimate attachments remain hidden until a private upload adapter is installed.
+Payment simulation is available only when `site.features.payments` is enabled. It supports configured one-time items and accepted-estimate deposits without collecting card details. Notification jobs are queued only. Signed-in customers can add inspected PDF, PNG or JPEG attachments to estimate requests through the local private upload provider.
 
 ## Storage and architecture
 

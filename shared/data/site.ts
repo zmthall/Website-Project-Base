@@ -16,6 +16,7 @@ import type { SiteConfig } from '../types/site';
 
 import { business } from './business';
 import { footerNavigation, primaryNavigation } from './navigation';
+import { features } from '../../feature-layers/features';
 
 /**
  * Primary configuration for the current website.
@@ -147,20 +148,5 @@ export const site = {
    *
    * Feature-specific configuration belongs to the corresponding feature.
    */
-  features: {
-    contact: true,
-    appointments: true,
-    estimates: true,
-    auth: 'local',
-    careers: true,
-    customer: 'local',
-    events: true,
-    newsletter: true,
-    blog: true,
-    products: false,
-    payments: false,
-    reviews: true,
-    search: false,
-    uploads: false,
-  },
+  features
 } satisfies SiteConfig;

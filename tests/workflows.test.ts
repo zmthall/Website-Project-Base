@@ -2,27 +2,17 @@ import test from 'node:test';
 import assert from 'node:assert/strict';
 import { createMemoryWorkflowRepository } from '../server/repositories/workflows';
 import { WorkflowService } from '../server/services/workflows';
-import { zonedInstant } from '../shared/utils/scheduling';
 import type {
-  AppointmentRequest,
   EstimateRequest,
   PaymentProvider,
 } from '../shared/types/workflows';
 const start = Date.parse('2026-11-16T12:00:00Z');
-const query = { date: '2026-11-17', service: 'consultation', location: 'remote', provider: 'team' };
-const booking: AppointmentRequest = {
-  ...query,
-  time: '09:00',
-  meeting: 'video',
-  contact: { name: 'Example', email: 'example@example.com' },
-  consent: true,
-};
 const request: EstimateRequest = {
   service: 'new-project',
   description: 'A useful project with clear requirements.',
   budget: 'exploring',
   timeline: 'flexible',
-  contact: booking.contact,
+  contact: { name: 'Example', email: 'example@example.com' },
   consent: true,
 };
 const setup = () => {
@@ -37,80 +27,6 @@ const setup = () => {
     },
   };
 };
-test('availability respects timezone, DST, working days, duration, horizon and overlapping provider bookings', () => {
-  const { service } = setup();
-  assert.equal(zonedInstant('2026-03-08', '02:30', 'America/Denver'), undefined);
-  assert.equal(zonedInstant('2026-11-17', '09:00', 'America/Denver'), '2026-11-17T16:00:00.000Z');
-  assert.equal(zonedInstant('2026-02-30', '09:00', 'America/Denver'), undefined);
-  assert.equal(service.availability({ ...query, date: '2026-11-21' }).length, 0);
-  assert.throws(() => service.availability({ ...query, date: '2099-01-01' }));
-  assert.throws(() => service.availability({ ...query, provider: 'someone-else' }));
-  const before = service.availability(query);
-  assert.ok(before.length > 0);
-  service.book('a', booking, 'booking-key');
-  assert.ok(
-    !service
-      .availability({ ...query, service: 'introduction' })
-      .some((s) => s.startsAt === '2026-11-17T16:30:00.000Z'),
-  );
-  assert.ok(service.availability(query).length < before.length);
-});
-test('simultaneous claims allow one booking and retries are idempotent', async () => {
-  const { service } = setup();
-  const results = await Promise.allSettled(
-    ['a', 'b'].map((owner) =>
-      Promise.resolve().then(() => service.book(owner, booking, 'booking-key')),
-    ),
-  );
-  assert.equal(results.filter((r) => r.status === 'fulfilled').length, 1);
-  const a = service.listAppointments('a')[0]!;
-  assert.equal(service.book('a', booking, 'booking-key').id, a.id);
-  assert.throws(
-    () => service.book('a', { ...booking, notes: 'changed' }, 'booking-key'),
-    /different input/,
-  );
-  assert.throws(() => service.book('b', booking, 'other-key'), /unavailable/);
-});
-test('reschedule is atomic, versioned and owned; cancellation releases the slot and cancels reminders', () => {
-  const { repo, service } = setup();
-  const a = service.book('a', booking, 'booking-key');
-  const b = service.book('b', { ...booking, time: '11:00' }, 'booking-key');
-  assert.throws(
-    () => service.changeAppointment('b', a.id, { version: a.version, cancel: true }, 'cancel-key'),
-    /not found/,
-  );
-  assert.throws(
-    () =>
-      service.changeAppointment(
-        'a',
-        a.id,
-        { version: a.version, date: query.date, time: '11:00' },
-        'resched-key',
-      ),
-    /unavailable/,
-  );
-  assert.equal(service.listAppointments('a')[0]!.startsAt, a.startsAt);
-  const moved = service.changeAppointment(
-    'a',
-    a.id,
-    { version: a.version, date: query.date, time: '13:00' },
-    'resched-key',
-  );
-  assert.equal(moved.version, 2);
-  assert.throws(
-    () => service.changeAppointment('a', a.id, { version: 1, cancel: true }, 'cancel-key'),
-    /changed/,
-  );
-  const canceled = service.changeAppointment('a', a.id, { version: 2, cancel: true }, 'cancel-key');
-  assert.equal(canceled.status, 'canceled');
-  assert.ok(
-    [...repo.notifications.values()]
-      .filter((j) => j.resourceId === a.id && j.kind === 'appointment-reminder')
-      .every((j) => j.status === 'canceled'),
-  );
-  assert.equal(service.book('c', { ...booking, time: '13:00' }, 'booking-key').status, 'confirmed');
-  assert.equal(service.listAppointments('b')[0]!.id, b.id);
-});
 test('estimate ownership, authoritative totals, lifecycle, expiry and decision idempotency', () => {
   const { service, tick } = setup();
   const e = service.requestEstimate('a', request, 'request-key');

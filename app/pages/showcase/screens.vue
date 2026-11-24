@@ -1,5 +1,6 @@
 <script setup lang="ts">
-import { contactForm, demoSection } from '../../data/demo';
+import { demoSection } from '../../data/demo';
+import { contactForm } from '../../../feature-layers/contact';
 import type { FormSchema } from '../../types/forms';
 const active = ref('appointments');
 const completed = ref(false);

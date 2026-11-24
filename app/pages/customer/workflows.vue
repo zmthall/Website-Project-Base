@@ -3,64 +3,20 @@
 
 // TODO [PAY-04]: Add an owner-checked invoice resolver and refund/dispute/partial-payment lifecycle, reconciliation jobs and downloadable verified receipts before exposing invoice payments. See docs/integration-audit.md.
 
-// TODO [BOOK-02]: Add explicit cancellation confirmation/policies, account prefill, refreshed day boundaries and recovery for changed staff/service availability without losing entered details. See docs/integration-audit.md.
-
 import { workflows } from '#shared/data/workflows';
-import type { Appointment, Estimate, PaymentSession, PaymentStatus } from '#shared/types/workflows';
+import type { Estimate, PaymentSession, PaymentStatus } from '#shared/types/workflows';
 useSEO({ title: 'Your demo requests', robots: { index: false, follow: false } });
-const { appointments, estimates, payments } = useWorkflows();
+const { estimates, payments } = useWorkflows();
 const appointmentEnabled = useFeature('appointments');
 const estimateEnabled = useFeature('estimates');
 const paymentEnabled = useFeature('payments');
-const bookingList = ref<Appointment[]>([]);
 const estimateList = ref<Estimate[]>([]);
 const paymentList = ref<PaymentSession[]>([]);
 const busy = ref(false);
 const error = ref('');
 const message = ref('');
-const active = ref<Appointment>();
-const date = ref('');
-const time = ref('');
 const key = useWorkflowKey();
-const slots = ref<{ value: string; label: string }[]>([]);
-const slotLoading = ref(false);
-let slotRevision = 0;
-watch([active, date], async () => {
-  const revision = ++slotRevision;
-  time.value = '';
-  slots.value = [];
-  if (!active.value || !date.value) return;
-  slotLoading.value = true;
-  try {
-    const a = active.value;
-    const result = await appointments.availability({
-      date: date.value,
-      service: a.service,
-      location: a.location,
-      provider: a.provider,
-    });
-    if (revision === slotRevision)
-      slots.value = result.map((s) => {
-        const value = new Intl.DateTimeFormat('en-GB', {
-          timeZone: a.timeZone,
-          hour: '2-digit',
-          minute: '2-digit',
-          hourCycle: 'h23',
-        }).format(new Date(s.startsAt));
-        return { value, label: value };
-      });
-  } catch {
-    if (revision === slotRevision)
-      error.value = 'Could not load new times. Choose another date or retry.';
-  } finally {
-    if (revision === slotRevision) slotLoading.value = false;
-  }
-});
-onBeforeUnmount(() => {
-  slotRevision++;
-});
 async function load() {
-  if (appointmentEnabled.value) bookingList.value = await appointments.list();
   if (estimateEnabled.value) estimateList.value = await estimates.list();
   if (paymentEnabled.value) paymentList.value = await payments.list();
 }
@@ -96,71 +52,7 @@ const outcomes: PaymentStatus[] = ['succeeded', 'declined', 'canceled', 'failed'
     <p v-if="error" role="alert" class="alert">{{ error }}</p>
     <p role="status" aria-live="polite">{{ busy ? 'Loading…' : message }}</p>
     <BaseButton :disabled="busy" variant="outline" @click="run(load)">Refresh records</BaseButton>
-    <section v-if="appointmentEnabled" class="stack">
-      <h2>Appointments</h2>
-      <NuxtLink to="/appointments">Book a demo appointment</NuxtLink>
-      <p v-if="!bookingList.length">No appointments yet.</p>
-      <article v-for="a in bookingList" :key="a.id" class="stack">
-        <h3>{{ a.service }}</h3>
-        <p>
-          {{ new Date(a.startsAt).toLocaleString('en-US', { timeZone: a.timeZone }) }} ·
-          {{ a.timeZone }} · {{ a.status }}
-        </p>
-        <div v-if="a.status === 'confirmed'" class="cluster">
-          <BaseButton :disabled="busy" variant="outline" @click="active = a">Reschedule</BaseButton>
-          <BaseButton
-            :disabled="busy"
-            variant="outline"
-            @click="
-              run(() =>
-                appointments.change(
-                  a.id,
-                  'cancel',
-                  { version: a.version },
-                  key({ id: a.id, version: a.version, action: 'cancel' }),
-                ),
-              )
-            "
-          >
-            Cancel appointment
-          </BaseButton>
-        </div>
-      </article>
-      <form
-        v-if="active"
-        class="stack"
-        @submit.prevent="
-          run(async () => {
-            await appointments.change(
-              active!.id,
-              'reschedule',
-              { version: active!.version, date, time },
-              key({ id: active!.id, version: active!.version, date, time }),
-            );
-            active = undefined;
-          })
-        "
-      >
-        <h3>Reschedule {{ active.service }}</h3>
-        <FormsField v-slot="{ id }" label="New date" required>
-          <FormsDate :id="id" v-model="date" required />
-        </FormsField>
-        <FormsField v-slot="{ id }" label="New time" :help="active.timeZone" required>
-          <FormsSelect
-            :id="id"
-            v-model="time"
-            :options="slots"
-            placeholder="Choose an available time"
-            :disabled="slotLoading"
-            required
-          />
-        </FormsField>
-        <BaseButton type="submit" :disabled="busy">Confirm reschedule</BaseButton>
-        <BaseButton variant="outline" @click="active = undefined">
-          Keep current appointment
-        </BaseButton>
-      </form>
-    </section>
+    <AppointmentsCustomerManager v-if="appointmentEnabled" />
     <section v-if="estimateEnabled" class="stack">
       <h2>Estimates</h2>
       <NuxtLink to="/estimates">Request a demo estimate</NuxtLink>
@@ -169,6 +61,11 @@ const outcomes: PaymentStatus[] = ['succeeded', 'declined', 'canceled', 'failed'
         <h3>{{ e.request.service }}</h3>
         <p>{{ e.request.description }}</p>
         <p>Status: {{ e.status }} · Reference: {{ e.id }}</p>
+        <ul v-if="e.attachments.length" aria-label="Estimate attachments">
+          <li v-for="attachment in e.attachments" :key="attachment.id">
+            <a :href="`/api/uploads/${attachment.id}/content`">{{ attachment.name }}</a>
+          </li>
+        </ul>
         <ul>
           <li v-for="(item, index) in e.items" :key="index">
             {{ item.description }} · {{ item.quantity }} × {{ money(item.unitAmount) }}

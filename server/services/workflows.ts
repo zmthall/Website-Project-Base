@@ -1,15 +1,10 @@
 // TODO [PAY-01]: Implement Square/Stripe hosted checkout using private runtime keys, server-owned amounts and stable provider idempotency; keep demo outcomes separate from real payment state. See docs/integration-audit.md.
 // TODO [EST-01]: Add audited multi-line revisions/requote/withdrawal policies, tax/discount/currency rules and durable acceptance evidence; preserve accepted versions when quoting changes. See docs/integration-audit.md.
 // TODO [BOOK-01]: Add provider-specific schedules, holidays, duration/buffer and location capacity rules with transactional overlap constraints, timezone/DST tests and authoritative clock handling. See docs/integration-audit.md.
-import { randomUUID, createHash } from 'node:crypto';
-import { createError } from 'h3';
+import { randomUUID } from 'node:crypto';
 import { workflows } from '../../shared/data/workflows';
-import { appointments as appointmentChoices } from '../../shared/data/appointments';
-import { estimates as estimateChoices } from '../../shared/data/estimates';
-import { zonedDate, zonedInstant } from '../../shared/utils/scheduling';
+import { estimates as estimateChoices } from '../../feature-layers/estimates/shared/estimates';
 import type {
-  AppointmentRequest,
-  AvailabilityQuery,
   EstimateRequest,
   QuoteInput,
   PaymentPurpose,
@@ -17,25 +12,14 @@ import type {
   PaymentProvider,
   UploadResolver,
   WorkflowRepository,
-  NotificationJob,
   Money,
 } from '../../shared/types/workflows';
-const fail = (statusCode: number, statusMessage: string): never => {
-  throw createError({ statusCode, statusMessage });
-};
-const text = (value: unknown, max = 1000) =>
-  typeof value === 'string' && value.trim().length > 0 && value.length <= max;
-function contact(value: unknown) {
-  const c = value as AppointmentRequest['contact'] | undefined;
-  if (
-    !c ||
-    !text(c.name, 200) ||
-    !text(c.email, 254) ||
-    !/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(c.email) ||
-    (c.phone !== undefined && (typeof c.phone !== 'string' || c.phone.length > 100))
-  )
-    fail(400, 'Enter valid contact details');
-}
+import {
+  fail,
+  validText as text,
+  validateContact,
+  WorkflowServiceSupport,
+} from './workflow-support';
 /** Server-owned demo status; no redirect/query parameter can mark a payment paid. */
 export class DemoPaymentProvider implements PaymentProvider {
   private statuses = new Map<string, PaymentStatus>();
@@ -53,217 +37,24 @@ export class DemoPaymentProvider implements PaymentProvider {
     this.statuses.set(id, outcome);
   }
 }
-export class WorkflowService {
+export class WorkflowService extends WorkflowServiceSupport<WorkflowRepository> {
   constructor(
-    public readonly repo: WorkflowRepository,
-    private now = () => Date.now(),
+    repo: WorkflowRepository,
+    now = () => Date.now(),
     private provider: PaymentProvider = new DemoPaymentProvider(),
     private uploads?: UploadResolver,
-  ) {}
+  ) {
+    super(repo, now);
+  }
   configureUploads(resolver: UploadResolver) {
     this.uploads = resolver;
   }
   get uploadsConfigured() {
     return Boolean(this.uploads);
   }
-  private owned<T extends { ownerId: string }>(
-    records: Map<string, T>,
-    id: string,
-    ownerId: string,
-  ): T {
-    const record = records.get(id);
-    if (!record || record.ownerId !== ownerId) return fail(404, 'Record not found');
-    return record;
-  }
-  private repeat<T>(
-    owner: string,
-    operation: string,
-    key: string,
-    input: unknown,
-    run: () => T,
-  ): T {
-    if (!/^[\w-]{8,100}$/.test(key)) fail(400, 'A valid Idempotency-Key is required');
-    const id = `${owner}:${operation}:${key}`;
-    const fingerprint = createHash('sha256').update(JSON.stringify(input)).digest('hex');
-    const previous = this.repo.attempts.get(id);
-    if (previous) {
-      if (previous.fingerprint !== fingerprint)
-        fail(409, 'Idempotency key reused with different input');
-      return structuredClone(previous.result) as T;
-    }
-    if (this.repo.attempts.size >= 10000) fail(503, 'Demo repository is full; restart it');
-    const result = run();
-    this.repo.attempts.set(id, { fingerprint, result: structuredClone(result) });
-    return structuredClone(result);
-  }
-  private notify(
-    ownerId: string,
-    resourceId: string,
-    kind: NotificationJob['kind'],
-    dueAt = new Date(this.now()).toISOString(),
-  ) {
-    const job: NotificationJob = {
-      id: randomUUID(),
-      ownerId,
-      resourceId,
-      kind,
-      dueAt,
-      status: 'queued',
-    };
-    this.repo.notifications.set(job.id, job);
-  }
-  private stopReminders(id: string) {
-    for (const job of this.repo.notifications.values())
-      if (job.resourceId === id && job.kind === 'appointment-reminder') job.status = 'canceled';
-  }
-  availability(query: AvailabilityQuery, ignoreId?: string) {
-    const cfg = workflows.appointments;
-    if (
-      !query ||
-      !text(query.date, 10) ||
-      !text(query.service) ||
-      !text(query.location) ||
-      !text(query.provider)
-    )
-      fail(400, 'Select a date, service, location and provider');
-    const duration = Object.hasOwn(cfg.serviceMinutes, query.service)
-      ? cfg.serviceMinutes[query.service]
-      : undefined;
-    if (
-      !duration ||
-      !cfg.locations.some((l) => l.value === query.location) ||
-      !cfg.providers.some((p) => p.value === query.provider && p.locations.includes(query.location))
-    )
-      return fail(400, 'Invalid scheduling options');
-    const day = Date.parse(query.date + 'T00:00:00Z');
-    if (!Number.isFinite(day) || new Date(day).toISOString().slice(0, 10) !== query.date)
-      fail(400, 'Invalid date');
-    const today = zonedDate(this.now(), cfg.timeZone);
-    if (query.date < today || day > Date.parse(today + 'T00:00:00Z') + cfg.horizonDays * 86400000)
-      fail(400, 'Choose a date inside the booking window');
-    if (!cfg.weekdays.includes(new Date(day).getUTCDay()) || cfg.closedDates.includes(query.date))
-      return [];
-    const minute = (value: string) => Number(value.slice(0, 2)) * 60 + Number(value.slice(3));
-    const slots = [];
-    for (
-      let value = minute(cfg.opens);
-      value + duration <= minute(cfg.closes);
-      value += cfg.intervalMinutes
-    ) {
-      const time = `${String(Math.floor(value / 60)).padStart(2, '0')}:${String(value % 60).padStart(2, '0')}`;
-      const startsAt = zonedInstant(query.date, time, cfg.timeZone);
-      if (!startsAt) continue;
-      const end = Date.parse(startsAt) + duration * 60000;
-      if (Date.parse(startsAt) < this.now() + cfg.leadMinutes * 60000) continue;
-      const conflict = [...this.repo.appointments.values()].some(
-        (a) =>
-          a.id !== ignoreId &&
-          a.status === 'confirmed' &&
-          a.provider === query.provider &&
-          Date.parse(a.startsAt) < end &&
-          Date.parse(a.endsAt) > Date.parse(startsAt),
-      );
-      if (!conflict)
-        slots.push({
-          id: `${query.date}/${time}/${query.provider}/${query.location}/${query.service}`,
-          service: query.service,
-          location: query.location,
-          provider: query.provider,
-          startsAt,
-          endsAt: new Date(end).toISOString(),
-          timeZone: cfg.timeZone,
-        });
-    }
-    return slots;
-  }
-  book(ownerId: string, input: AppointmentRequest, key: string) {
-    return this.repeat(ownerId, 'book', key, input, () => {
-      contact(input.contact);
-      if (
-        input.consent !== true ||
-        !appointmentChoices.meetingTypes.some((m) => m.value === input.meeting) ||
-        (input.meeting === 'phone' && !text(input.contact.phone)) ||
-        (input.meeting === 'in-person' && input.location !== 'office') ||
-        (input.meeting !== 'in-person' && input.location !== 'remote') ||
-        (input.notes !== undefined &&
-          (typeof input.notes !== 'string' || input.notes.length > 10000))
-      )
-        fail(400, 'Check meeting format, location, consent and notes');
-      const startsAt = zonedInstant(input.date, input.time, workflows.appointments.timeZone);
-      const slot = this.availability(input).find((s) => s.startsAt === startsAt);
-      if (!slot)
-        return fail(409, 'This time is unavailable. Refresh availability and choose another slot.');
-      const record = {
-        ...slot,
-        id: randomUUID(),
-        ownerId,
-        contact: input.contact,
-        meeting: input.meeting,
-        notes: input.notes ?? '',
-        status: 'confirmed' as const,
-        version: 1,
-      };
-      this.repo.appointments.set(record.id, structuredClone(record));
-      this.notify(ownerId, record.id, 'appointment-confirmed');
-      this.notify(
-        ownerId,
-        record.id,
-        'appointment-reminder',
-        new Date(Math.max(this.now(), Date.parse(slot.startsAt) - 86400000)).toISOString(),
-      );
-      return record;
-    });
-  }
-  listAppointments(owner: string) {
-    return structuredClone([...this.repo.appointments.values()].filter((a) => a.ownerId === owner));
-  }
-  changeAppointment(
-    owner: string,
-    id: string,
-    input: { version: number; cancel?: boolean; date?: string; time?: string },
-    key: string,
-  ) {
-    return this.repeat(owner, `appointment:${id}`, key, input, () => {
-      const current = this.owned(this.repo.appointments, id, owner);
-      if (
-        current.version !== input.version ||
-        current.status !== 'confirmed' ||
-        Date.parse(current.startsAt) <= this.now()
-      )
-        return fail(409, 'Appointment changed or can no longer be modified');
-      if (input.cancel) {
-        current.status = 'canceled';
-        this.stopReminders(id);
-        this.notify(owner, id, 'appointment-canceled');
-      } else {
-        const startsAt = zonedInstant(input.date ?? '', input.time ?? '', current.timeZone);
-        const slot = this.availability(
-          {
-            date: input.date ?? '',
-            service: current.service,
-            location: current.location,
-            provider: current.provider,
-          },
-          id,
-        ).find((s) => s.startsAt === startsAt);
-        if (!slot) return fail(409, 'This time is unavailable. Choose another slot.');
-        Object.assign(current, slot, { id });
-        this.stopReminders(id);
-        this.notify(owner, id, 'appointment-rescheduled');
-        this.notify(
-          owner,
-          id,
-          'appointment-reminder',
-          new Date(Math.max(this.now(), Date.parse(slot.startsAt) - 86400000)).toISOString(),
-        );
-      }
-      current.version++;
-      return structuredClone(current);
-    });
-  }
   requestEstimate(owner: string, input: EstimateRequest, key: string, allowUploads = false) {
     return this.repeat(owner, 'estimate-request', key, input, () => {
-      contact(input.contact);
+      validateContact(input.contact);
       if (
         input.consent !== true ||
         !text(input.description, 10000) ||

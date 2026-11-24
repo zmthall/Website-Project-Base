@@ -1,4 +1,5 @@
 import { defineAsyncComponent, type Component } from 'vue';
+import { contactSectionRegistry } from '../../feature-layers/contact/theme';
 export const sectionRegistry: Record<
   string,
   { family: string; variant: string; label: string; component: Component }
@@ -75,30 +76,7 @@ export const sectionRegistry: Record<
     label: 'Pricing / Cards',
     component: defineAsyncComponent(() => import('../components/sections/pricing/Cards.vue')),
   },
-  'contact-split': {
-    family: 'contact',
-    variant: 'split',
-    label: 'Contact / Split',
-    component: defineAsyncComponent(() => import('../components/sections/contact/Split.vue')),
-  },
-  'contact-simple': {
-    family: 'contact',
-    variant: 'simple',
-    label: 'Contact / Simple',
-    component: defineAsyncComponent(() => import('../components/sections/contact/Simple.vue')),
-  },
-  'contact-withmap': {
-    family: 'contact',
-    variant: 'withmap',
-    label: 'Contact / WithMap',
-    component: defineAsyncComponent(() => import('../components/sections/contact/WithMap.vue')),
-  },
-  'contact-locations': {
-    family: 'contact',
-    variant: 'locations',
-    label: 'Contact / Locations',
-    component: defineAsyncComponent(() => import('../components/sections/contact/Locations.vue')),
-  },
+  ...contactSectionRegistry,
   'hero-split': {
     family: 'hero',
     variant: 'split',
@@ -281,7 +259,9 @@ export const sectionRegistry: Record<
     family: 'search',
     variant: 'results',
     label: 'Search / Results',
-    component: defineAsyncComponent(() => import('../components/sections/search/Results.vue')),
+    component: defineAsyncComponent(
+      () => import('../../feature-layers/search/app/components/sections/search/Results.vue'),
+    ),
   },
   'about-split': {
     family: 'about',

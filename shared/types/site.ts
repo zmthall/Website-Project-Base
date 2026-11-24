@@ -67,7 +67,7 @@ export interface SiteLocaleConfig {
  */
 export interface SiteFeatures {
   appointments?: boolean;
-  auth?: false | 'firebase' | 'supabase' | 'local';
+  administrator?: false | 'firebase' | 'supabase' | 'local';
   careers?: boolean;
   contact?: boolean;
   blog?: boolean;

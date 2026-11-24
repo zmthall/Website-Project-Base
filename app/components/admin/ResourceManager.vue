@@ -53,7 +53,7 @@ function openEditor(record?: ManagedRecord) {
         (field.type === 'checkbox'
           ? false
           : field.type === 'number'
-            ? 5
+            ? (field.max ?? field.min ?? 0)
             : field.key === 'timeZone'
               ? 'America/Denver'
               : (field.options?.[0] ?? '')),
@@ -69,12 +69,11 @@ function openEditor(record?: ManagedRecord) {
   modal.value = true;
 }
 function immutable(key: string) {
-  return Boolean(
-    editing.value &&
-    ((['messages', 'applications'].includes(props.kind) && !['notes', 'status'].includes(key)) ||
-      (props.kind === 'subscribers' && key !== 'status') ||
-      (props.kind === 'blog' && key === 'slug')),
-  );
+  if (!editing.value) return false;
+  const editable = definition.value.editableFields;
+  return editable
+    ? !editable.includes(key)
+    : Boolean(definition.value.immutableFields?.includes(key));
 }
 async function save() {
   busy.value = true;
@@ -159,13 +158,7 @@ function date(value: string) {
         <thead>
           <tr>
             <th scope="col">
-              {{
-                kind === 'messages' || kind === 'reviews' || kind === 'applications'
-                  ? 'Name'
-                  : kind === 'subscribers'
-                    ? 'Email'
-                    : 'Title'
-              }}
+              {{ definition.primaryFieldLabel ?? 'Title' }}
             </th>
             <th scope="col">Details</th>
             <th scope="col">Status</th>
@@ -195,7 +188,7 @@ function date(value: string) {
                   :aria-label="`Edit ${label(record)}`"
                   @click="openEditor(record)"
                 >
-                  {{ ['messages', 'applications'].includes(kind) ? 'Read / manage' : 'Edit' }}
+                  {{ definition.manageLabel ?? 'Edit' }}
                 </BaseButton>
                 <NuxtLink
                   v-if="kind === 'blog' && state(record) === 'published'"
@@ -299,8 +292,9 @@ function date(value: string) {
                 v-model="fields[field.key] as number"
                 :aria-describedby="describedBy"
                 :invalid="invalid"
-                min="1"
-                max="5"
+                :min="field.min"
+                :max="field.max"
+                :step="field.step"
                 :required="field.required"
                 :readonly="immutable(field.key)"
                 :disabled="busy"

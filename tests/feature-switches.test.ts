@@ -19,4 +19,6 @@ test('feature routes are disabled by default including nested routes', () => {
   assert.equal(isFeaturePathEnabled({ reviews: true }, '/reviews'), true);
   assert.equal(isFeaturePathEnabled({ newsletter: false }, '/newsletter'), false);
   assert.equal(isFeaturePathEnabled({ newsletter: true }, '/newsletter'), true);
+  assert.equal(isFeaturePathEnabled({ products: false }, '/products'), false);
+  assert.equal(isFeaturePathEnabled({ products: true }, '/products/example'), true);
 });

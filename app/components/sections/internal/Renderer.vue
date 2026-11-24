@@ -154,30 +154,6 @@ const isCentered = computed(() => ['centered', 'minimal'].includes(props.variant
             :class="{ 'gallery-full': variant === 'fullscreen' }"
           />
         </template>
-        <template v-else-if="family === 'contact'">
-          <div class="section-layout" :data-layout="layout">
-            <div class="stack">
-              <BusinessContactMethods />
-              <template v-if="variant === 'locations'">
-                <BlocksLocationCard
-                  v-for="location in data.locations"
-                  :key="location.id"
-                  :location="location"
-                />
-              </template>
-              <BusinessMap
-                v-if="variant === 'withmap' && currentLocation"
-                :location="currentLocation"
-              />
-              <ContentCTA v-if="data.actions" :actions="data.actions" />
-            </div>
-            <FormsDynamicForm
-              v-if="data.form && variant !== 'simple' && variant !== 'locations'"
-              :schema="data.form"
-              @submit="emit('submit', $event)"
-            />
-          </div>
-        </template>
         <template v-else-if="family === 'locations'">
           <BusinessServiceArea v-if="variant === 'servicearea'" :areas="data.areas ?? []" />
           <div v-else-if="variant === 'map'" class="grid grid-2">

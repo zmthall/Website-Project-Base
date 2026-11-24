@@ -8,26 +8,40 @@ The private keys are declared under `runtimeConfig.integrations` in `nuxt.config
 
 Nuxt loads `.env` for local CLI workflows. A built server does **not** automatically load it; inject environment variables through the hosting platform, container secret configuration or a deliberate runtime env-file mechanism. Matching `NUXT_` names override the declared runtime-config properties. See [Nuxt runtime configuration](https://nuxt.com/docs/4.x/guide/going-further/runtime-config).
 
-**Adding credentials does not connect a provider.** The new settings are recognized placeholders for future adapters. Current auth/CMS uses its existing SQLite files and environment presets; workflows still use process-local memory and the card-free demo provider. `site.features` controls feature availability, not provider readiness. `CONFIG-01` requires fail-closed validation and real adapter registration before any integration is enabled.
+**Adding credentials does not connect most providers.** PostgreSQL is the first implemented integration adapter: selecting `postgres` validates its settings, opens a pool, applies versioned migrations and fails server startup when the connection is unavailable. Public/editorial CMS resources use PostgreSQL; private submissions, local auth data and uploads retain their scoped local stores. Workflows still use process-local memory and the card-free demo provider. `site.features` controls feature availability, not provider readiness.
 
 ## Configuration inventory
 
-| Area                 | Environment prefix / existing keys      | Current behavior                                           | Future connection                                                 |
-| -------------------- | --------------------------------------- | ---------------------------------------------------------- | ----------------------------------------------------------------- |
-| API transport        | `NUXT_PUBLIC_API_BASE`, `NUXT_API_BASE` | Implemented; public base contains no credentials           | Trusted external backend transport                                |
-| Local accounts       | `NUXT_ADMIN_*`, `NUXT_CUSTOMER_*`       | Implemented local preset accounts and customer SQLite      | Managed provisioning, MFA/recovery, identity adapter              |
-| Local CMS            | `NUXT_MANAGEMENT_DATABASE`              | Implemented SQLite content/private submissions             | Migrations, backups, optional database adapter                    |
-| Workflow database    | `NUXT_INTEGRATIONS_DATABASE_*`          | Reserved, memory remains active                            | Transactional SQL repository with migrations and TLS              |
-| Shared sessions      | `NUXT_INTEGRATIONS_SESSIONS_*`          | Reserved, process-local sessions remain active             | Redis/shared sessions, TTL/revocation and distributed rate limits |
-| Payments             | `NUXT_INTEGRATIONS_PAYMENTS_*`          | Reserved, demo remains active; feature disabled by default | Square or Stripe hosted checkout and verified webhooks            |
-| Transactional mail   | `NUXT_INTEGRATIONS_EMAIL_*`             | Reserved, outbox only                                      | API or SMTP adapter, sender verification and delivery worker      |
-| Newsletter           | `NUXT_INTEGRATIONS_NEWSLETTER_*`        | Reserved, local requested subscribers                      | List provider, confirmation/unsubscribe and webhook sync          |
-| Private uploads      | `NUXT_INTEGRATIONS_UPLOADS_*`           | Reserved, no object store                                  | Private storage/identity and scanned ownership resolver           |
-| Firebase/Supabase    | `NUXT_INTEGRATIONS_IDENTITY_*`          | Reserved, local auth remains selected                      | Server identity verification; mounted/managed credentials         |
-| Search               | `NUXT_INTEGRATIONS_SEARCH_*`            | Reserved, local public search helpers                      | Server-scoped remote index adapter                                |
-| Bot protection       | `NUXT_INTEGRATIONS_SPAM_*`              | Reserved, local throttles remain                           | Server token verification; explicit public site-key projection    |
-| Telemetry            | `NUXT_INTEGRATIONS_OBSERVABILITY_*`     | Reserved                                                   | Redacted server traces/metrics/error reporting                    |
-| Secret manager/vault | `NUXT_INTEGRATIONS_SECRETS_*`           | Reserved; no encrypted credential table                    | Managed secret retrieval or audited envelope encryption           |
+| Area                  | Environment prefix / existing keys      | Current behavior                                                  | Future connection                                                 |
+| --------------------- | --------------------------------------- | ----------------------------------------------------------------- | ----------------------------------------------------------------- |
+| API transport         | `NUXT_PUBLIC_API_BASE`, `NUXT_API_BASE` | Implemented; public base contains no credentials                  | Trusted external backend transport                                |
+| Local accounts        | `NUXT_ADMIN_*`, `NUXT_CUSTOMER_*`       | Implemented local preset accounts and customer SQLite             | Managed provisioning, MFA/recovery, identity adapter              |
+| Public/editorial CMS  | `NUXT_INTEGRATIONS_DATABASE_*`          | PostgreSQL blog/events/reviews/business/FAQ/media/rating records  | Backups, restore drills, revisions and audit history              |
+| Private local records | `NUXT_MANAGEMENT_DATABASE`              | SQLite messages/subscriptions/applications/auth policy            | Retention, backups, or purpose-built production repositories      |
+| Workflow database     | `NUXT_INTEGRATIONS_DATABASE_*`          | PostgreSQL adapter active; workflow maps remain process-local     | Transactional PostgreSQL workflow repositories                    |
+| Shared sessions       | `NUXT_INTEGRATIONS_SESSIONS_*`          | Reserved, process-local sessions remain active                    | Redis/shared sessions, TTL/revocation and distributed rate limits |
+| Payments              | `NUXT_INTEGRATIONS_PAYMENTS_*`          | Reserved, demo remains active; feature disabled by default        | Square or Stripe hosted checkout and verified webhooks            |
+| Transactional mail    | `NUXT_INTEGRATIONS_EMAIL_*`             | Reserved, outbox only                                             | API or SMTP adapter, sender verification and delivery worker      |
+| Newsletter            | `NUXT_INTEGRATIONS_NEWSLETTER_*`        | Reserved, local requested subscribers                             | List provider, confirmation/unsubscribe and webhook sync          |
+| Local private uploads | `NUXT_UPLOAD_STORAGE_*`                 | Implemented private filesystem bytes and SQLite metadata          | Persistent private volumes, backup and retention policy           |
+| Hosted uploads        | `NUXT_INTEGRATIONS_UPLOADS_*`           | Reserved; local provider remains active                           | Object storage, malware scanner and distributed cleanup           |
+| Firebase/Supabase     | `NUXT_INTEGRATIONS_IDENTITY_*`          | Reserved, local auth remains selected                             | Server identity verification; mounted/managed credentials         |
+| Search                | `NUXT_INTEGRATIONS_SEARCH_*`            | Reserved, local public search helpers                             | Server-scoped remote index adapter                                |
+| Bot protection        | `NUXT_INTEGRATIONS_SPAM_*`              | Reserved, local throttles remain                                  | Server token verification; explicit public site-key projection    |
+| Telemetry             | `NUXT_INTEGRATIONS_OBSERVABILITY_*`     | Reserved                                                          | Redacted server traces/metrics/error reporting                    |
+| Secret manager/vault  | `NUXT_INTEGRATIONS_SECRETS_*`           | Reserved; no encrypted credential table                           | Managed secret retrieval or audited envelope encryption           |
+
+### PostgreSQL
+
+Set `NUXT_INTEGRATIONS_DATABASE_DRIVER=postgres` and provide a PostgreSQL DSN in `NUXT_INTEGRATIONS_DATABASE_URL`. At Nitro startup the adapter validates the URL, TLS mode and pool size, verifies the connection, takes a transaction-scoped advisory migration lock, and applies pending migrations from `server/database/migrations.ts`. Startup fails closed when configuration, connection or migration setup fails. The pool is closed with the Nitro server lifecycle.
+
+`NUXT_INTEGRATIONS_DATABASE_TLS` accepts `disable`, `prefer`, `require`, `verify-ca` or `verify-full`. Use `disable` only for a trusted local connection. Production should normally use `verify-full` with a certificate chain trusted by the Node runtime. Pool size must be an integer from 1 through 50.
+
+`GET /api/health/database` returns only the selected driver and sanitized state. A configured connection reports `{ "driver": "postgres", "status": "ready" }`; the default memory selection reports `disabled`. The response never includes the DSN, database name, credentials or connection errors.
+
+The `managed_content` table stores blog posts, events, moderated reviews, business profiles, FAQs, media references and aggregate ratings. Each feature-owned resource keeps its repository in that feature layer; site-wide resources use `server/repositories/shared-content.ts`. On the first PostgreSQL startup, public blog/event/review rows are copied non-destructively from `NUXT_MANAGEMENT_DATABASE`, configured business/FAQ records are seeded, and a database marker prevents repeat imports. Private messages, subscribers, applications and authentication settings are deliberately not copied by this importer. Existing PostgreSQL rows always win because imports use conflict-safe inserts.
+
+The adapter deliberately does not claim workflow persistence yet. `server/repositories/workflows.ts` still supplies synchronous maps to the existing domain services. Convert those service/repository contracts to asynchronous transactional operations before routing workflow requests through `databaseQuery`.
 
 ### Square
 
@@ -61,6 +75,6 @@ The encryption/KMS environment fields are explicitly reserved and unused. No gen
 
 ## Tests and audit tracking
 
-`tests/integration-config.test.ts` verifies that every new environment placeholder maps to a private declared default, secret defaults are empty, and the TODO registry has real code anchors. It checks structure without loading `.env` or printing credentials. The normal build/typecheck verifies Nuxt's private config types; existing workflow tests remain the source of behavioral evidence.
+`tests/integration-config.test.ts` verifies that every environment placeholder maps to a private declared default, secret defaults are empty, database configuration fails closed, and the TODO registry has real code anchors. `tests/postgres-adapter.test.ts` covers connection failure, transactional migrations, sanitized readiness and pool shutdown with an injected pool. Neither test loads `.env` nor prints credentials. The normal build/typecheck verifies Nuxt's private config types; existing workflow tests remain the source of workflow behavioral evidence.
 
 All open tasks and priority/completion criteria are indexed in [integration-audit.md](integration-audit.md). Keep IDs stable when moving work; remove code TODOs and update the index only after the integration and its acceptance tests exist.

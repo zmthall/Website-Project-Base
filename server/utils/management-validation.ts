@@ -19,8 +19,26 @@ export function validateManagedFields(
       continue;
     }
     if (spec.type === 'number') {
-      if (typeof value !== 'number' || !Number.isInteger(value) || value < 1 || value > 5)
-        throw createError({ statusCode: 400, statusMessage: 'Rating must be between 1 and 5' });
+      if (value === '' && !spec.required) {
+        fields[spec.key] = '';
+        continue;
+      }
+      const min = spec.min ?? Number.MIN_SAFE_INTEGER;
+      const max = spec.max ?? Number.MAX_SAFE_INTEGER;
+      const step = spec.step ?? 1;
+      const aligned =
+        Math.abs((Number(value) - min) / step - Math.round((Number(value) - min) / step));
+      if (
+        typeof value !== 'number' ||
+        !Number.isFinite(value) ||
+        value < min ||
+        value > max ||
+        aligned > 1e-8
+      )
+        throw createError({
+          statusCode: 400,
+          statusMessage: `${spec.label} must be between ${min} and ${max}`,
+        });
       fields[spec.key] = value;
       continue;
     }
@@ -57,6 +75,19 @@ export function validateManagedFields(
       }
       if (url.protocol !== 'https:' || url.username || url.password)
         throw createError({ statusCode: 400, statusMessage: 'Image URLs must use HTTPS' });
+    }
+    if (kind === 'business' && spec.key === 'document' && normalized) {
+      let document: unknown;
+      try {
+        document = JSON.parse(normalized);
+      } catch {
+        throw createError({ statusCode: 400, statusMessage: 'Business JSON is invalid' });
+      }
+      if (!document || typeof document !== 'object' || Array.isArray(document))
+        throw createError({
+          statusCode: 400,
+          statusMessage: 'Business JSON must contain an object',
+        });
     }
     if (spec.type === 'datetime-local' && normalized) {
       if (!/(Z|[+-]\d\d:\d\d)$/.test(normalized) || !Number.isFinite(Date.parse(normalized)))

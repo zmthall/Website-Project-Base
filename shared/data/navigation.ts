@@ -28,6 +28,7 @@ export const primaryNavigation = [
   { label: 'Events', action: { type: 'route', to: '/events' } },
   { label: 'Blog', action: { type: 'route', to: '/blog' } },
   { label: 'Resources', action: { type: 'route', to: '/articles' } },
+  { label: 'Search', action: { type: 'route', to: '/search' } },
   { label: 'Showcase', action: { type: 'route', to: '/showcase' } },
   {
     label: 'Sign in / Register',

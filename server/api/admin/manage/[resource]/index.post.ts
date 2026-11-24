@@ -1,8 +1,10 @@
 import { resources } from '../../../../../shared/data/management';
-import { managedResource } from '../../../../utils/management-api';
+import { managedRepository, managedResource } from '../../../../utils/management-api';
 import { validateManagedFields } from '../../../../utils/management-validation';
-import { managementStore } from '../../../../utils/management-store';
-import { blogStore, blogMutation } from '../../../../utils/blog-store';
+import {
+  blogStore,
+  blogMutation,
+} from '../../../../../feature-layers/blog/server/utils/blog-store';
 import { boundedJson } from '../../../../utils/bounded-body';
 export default defineEventHandler(async (event) => {
   const kind = managedResource(event);
@@ -15,5 +17,5 @@ export default defineEventHandler(async (event) => {
   const fields = validateManagedFields(kind, body.fields);
   return kind === 'blog'
     ? blogMutation(() => blogStore().save(fields))
-    : managementStore().save(kind, fields);
+    : managedRepository(kind).save(fields);
 });

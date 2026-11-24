@@ -22,7 +22,11 @@ Workflow ownership is derived from the authenticated customer's account ID. The 
 
 ## Configuration
 
-Provider flags: `site.features.auth` and `site.features.customer`. Private customer storage: `NUXT_CUSTOMER_DATABASE`. Policies/content: `NUXT_MANAGEMENT_DATABASE`. Use HTTPS in production and private persistent volumes for SQLite. Restart after changing preset credentials.
+Provider flags: `site.features.administrator` and `site.features.customer`. Private customer storage: `NUXT_CUSTOMER_DATABASE`. Policies/content: `NUXT_MANAGEMENT_DATABASE`. Use HTTPS in production and private persistent volumes for SQLite. Restart after changing preset credentials.
+
+Administrator authentication is packaged under `feature-layers/administrator/`. The layer owns its public client contract/store, plugins, composable, route guard, protected layout, login/dashboard/settings UI, server middleware, session service, API endpoints and dedicated tests. Generic policy persistence, bounded request parsing, management metadata and constant-time secret comparison remain shared integration seams.
+
+Customer authentication is packaged under `feature-layers/customer/`. The layer owns registration and session APIs, account persistence, client contract/store, plugins, composable, route guard, protected layout, account pages, runtime defaults and dedicated tests. The `/customer/workflows` page remains a shared account dashboard because it composes Appointments, Estimates and Payments; those features depend on Customer's server authorization contract rather than duplicating it.
 
 Future shared-session and identity placeholders live under `NUXT_INTEGRATIONS_SESSIONS_*` and `NUXT_INTEGRATIONS_IDENTITY_*`; they do not replace the local implementation automatically. Do not put secrets in public runtime config or returned account profiles.
 

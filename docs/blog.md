@@ -2,7 +2,7 @@
 
 ## Implemented locally
 
-Public routes are `/blog` and `/blog/:slug`; editing lives at `/admin/blog`. The `blog_posts` table in the private management SQLite file stores Markdown in a `content` column with separate editorial, image, SEO, publication and version fields. Posts are not file-backed `.md` documents.
+Public routes are `/blog` and `/blog/:slug`; editing lives at `/admin/blog`. Posts are stored as versioned records in PostgreSQL `managed_content`, with Markdown and editorial/image/SEO/publication fields kept separately in the record document. Posts are not file-backed `.md` documents. The previous SQLite `blog_posts` table is read only by the one-time legacy importer.
 
 ## Editing and publication flow
 

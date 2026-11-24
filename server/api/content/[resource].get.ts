@@ -1,15 +1,16 @@
 // TODO [REV-01]: Add audited moderation, abuse/duplicate handling and verified external-provider import; expose only public fields and consistent aggregates. See docs/integration-audit.md.
-import { managedResource } from '../../utils/management-api';
-import { managementStore } from '../../utils/management-store';
+import {
+  managedRecords,
+  managedResource,
+  publicContentKinds,
+} from '../../utils/management-api';
 import { recordIsPublic } from '../../utils/management-validation';
 import { renderMarkdown } from '../../utils/markdown';
-export default defineEventHandler((event) => {
+export default defineEventHandler(async (event) => {
   const kind = managedResource(event);
-  if (!['events', 'reviews', 'newsletters', 'jobs'].includes(kind))
+  if (!publicContentKinds.includes(kind as (typeof publicContentKinds)[number]))
     throw createError({ statusCode: 404 });
-  const records = managementStore()
-    .list(kind)
-    .filter((record) =>
+  const records = (await managedRecords(kind)).filter((record) =>
       kind === 'newsletters'
         ? recordIsPublic(record.fields)
         : record.fields.status === (kind === 'jobs' ? 'open' : 'published'),

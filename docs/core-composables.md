@@ -7,7 +7,7 @@ Call composables from component setup, another composable or a Nuxt plugin. Regi
 | Composable                         | Responsibility                                             | Source/state                                                         |
 | ---------------------------------- | ---------------------------------------------------------- | -------------------------------------------------------------------- |
 | `useSiteConfig`                    | Deeply readonly public site configuration                  | `shared/data/site.ts`                                                |
-| `useFeature`                       | Reactive explicit feature checks                           | Site feature flags; auth/customer provider values handled separately |
+| `useFeature`                       | Reactive explicit feature checks                           | Site feature flags; administrator/customer provider values handled separately |
 | `useBusiness`                      | Location/contact/address display fallbacks                 | Public business configuration                                        |
 | `useNavigation`                    | Visibility, ordering, route activity and action resolution | Public navigation plus supplied auth state                           |
 | `useWebsiteUI`                     | Runtime theme/section preview state                        | Serializable app defaults; preview is not database persistence       |

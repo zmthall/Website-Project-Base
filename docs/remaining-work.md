@@ -1,6 +1,6 @@
 # Remaining integration work
 
-The local foundation now includes admin/customer authentication, SQLite CMS content, careers and local request processing. Appointments, estimates and payments have process-local repositories and executable contracts; see [workflows.md](workflows.md). These workflow records deliberately do **not** use a database yet.
+The local foundation now includes admin/customer authentication, PostgreSQL public/editorial CMS content, careers and local request processing. Appointments, estimates and payments have process-local repositories and executable contracts; see [workflows.md](workflows.md). These workflow records deliberately do **not** use a database yet.
 
 ## Implemented workflow foundations
 
@@ -13,7 +13,7 @@ The local foundation now includes admin/customer authentication, SQLite CMS cont
 ## Still needed for production
 
 - Replace process-local workflow maps with durable transactional repositories, slot constraints and persistent idempotency. Prove concurrency across processes and recovery after restarts.
-- Configure private upload storage, byte/content validation, ownership, quotas, malware/ready-state policy and safe object downloads. The optional estimate picker stays hidden until that adapter is installed.
+- Replace the functional local upload provider's conservative scanner/filesystem storage with deployment-approved malware scanning and object storage when production requirements demand it. Add a durable cleanup worker and multi-instance quota coordination.
 - Select a hosted payment provider. Implement signed webhook verification, authoritative amount/currency reconciliation, durable receipts, provider retries/refunds and reconciliation workers. No raw card handling or real checkout is implemented.
 - Install notification delivery workers and an email/SMS provider. Outbox jobs are queued only. Add deduplicated delivery, preferences and retention.
 - Add invoice contracts and an authoritative invoice resolver before allowing invoice payments. Draft/withdrawal/requote estimate authoring can be expanded beyond the implemented request/quote/decision path.
@@ -22,7 +22,7 @@ The local foundation now includes admin/customer authentication, SQLite CMS cont
 - Complete real Safari and assistive-technology checks; validate deployment HTTPS/CSP/cache requirements and provider integration failure scenarios.
 - Replace sample client content/assets/legal copy and choose each optional feature deliberately. Workflow simulation labels must remain until real providers and persistence replace the demo.
 
-Existing CMS content, contact messages, newsletter subscription requests, reviews and career applications use their local SQLite stores; this is separate from the new in-memory workflow repositories. Search indexing, provider-specific email/list integrations, production upload storage, persistent theme editing and the roadmap's separate client demonstration sites remain follow-up work. See the individual feature documents and dependency decision log for those integration boundaries.
+Blog posts, events, reviews, business information, FAQs, media references and aggregate ratings use PostgreSQL. Private contact messages, newsletter subscription requests, career applications, local auth policy and upload metadata retain their scoped local stores; this remains separate from the in-memory workflow repositories. Hosted search scaling/abuse controls, provider-specific email/list integrations, production upload storage, persistent theme editing and the roadmap's separate client demonstration sites remain follow-up work. See the individual feature documents and dependency decision log for those integration boundaries.
 
 ## Project-wide integration audit
 

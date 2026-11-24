@@ -4,11 +4,11 @@
 
 `/events` reads `/api/content/events`. Administrators manage records at `/admin/events`; only published events enter the public response. The desktop calendar provides month navigation, Today, category filtering and job-independent event-details dialogs. Narrow layouts present the month's events as an agenda. Dialogs support keyboard dismissal and focus restoration.
 
-When a successful read contains no published records, `app/features/events/demo.ts` supplies explicitly labeled sample events around the serialized initial date. A retrieval failure shows retry feedback rather than substituting samples as live content.
+When a successful read contains no published records, `feature-layers/events/app/features/events/demo.ts` supplies explicitly labeled sample events around the serialized initial date. A retrieval failure shows retry feedback rather than substituting samples as live content.
 
 ## Data and SEO flow
 
-Calendar presentation uses `CalendarEvent` in `app/features/events/types.ts`: local date/start/end, timezone, category, location and description. The initial demo month uses America/Denver; each event's supplied timezone is stated in its details rather than silently converted to the visitor's zone.
+Calendar presentation uses `CalendarEvent` in `feature-layers/events/app/features/events/types.ts`: local date/start/end, timezone, category, location and description. The initial demo month uses America/Denver; each event's supplied timezone is stated in its details rather than silently converted to the visitor's zone.
 
 `publishedEventSchemas` converts published local wall-clock times to UTC instants and builds Event JSON-LD only for valid dates/timezones and either an HTTPS virtual URL or a complete postal location. Admin records have optional online/address fields for this purpose. Each event gets a unique schema ID on the calendar route. Samples and drafts do not generate schema; incomplete metadata suppresses schema without hiding the visible event.
 

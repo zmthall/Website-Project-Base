@@ -1,4 +1,4 @@
-import { createFeatureApis } from '../features/api';
+import { createFeatureApis } from '../../feature-layers/api';
 export default defineNuxtPlugin({
   name: 'features',
   dependsOn: ['api'],

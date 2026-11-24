@@ -1,9 +1,12 @@
 // TODO [ADMIN-01]: Add durable audit events and least-privilege roles for content edits/deletes, applicant/message access and auth policy changes; add retention/export actions where appropriate. See docs/integration-audit.md.
-import { managedResource } from '../../../../utils/management-api';
+import { managedRepository, managedResource } from '../../../../utils/management-api';
 import { validateManagedFields } from '../../../../utils/management-validation';
-import { managementStore } from '../../../../utils/management-store';
-import { blogStore, blogMutation } from '../../../../utils/blog-store';
+import {
+  blogStore,
+  blogMutation,
+} from '../../../../../feature-layers/blog/server/utils/blog-store';
 import { boundedJson } from '../../../../utils/bounded-body';
+import { resources } from '../../../../../shared/data/management';
 export default defineEventHandler(async (event) => {
   const kind = managedResource(event);
   const id = getRouterParam(event, 'id')!;
@@ -11,16 +14,16 @@ export default defineEventHandler(async (event) => {
   if (typeof body.version !== 'string')
     throw createError({ statusCode: 400, statusMessage: 'Record version required' });
   const fields = validateManagedFields(kind, body.fields);
-  if (['messages', 'applications', 'subscribers'].includes(kind)) {
-    const previous = managementStore().get(kind, id);
+  const editableFields = resources[kind].editableFields;
+  const repository = managedRepository(kind);
+  if (editableFields) {
+    const previous = await repository.get(id);
     if (!previous) throw createError({ statusCode: 404 });
-    // Keep original submission/consent evidence immutable; only workflow status and notes may change.
-    return managementStore().save(
-      kind,
+    // Keep original submission/consent evidence immutable; only declared workflow fields may change.
+    return repository.save(
       {
         ...previous.fields,
-        status: fields.status!,
-        ...(['messages', 'applications'].includes(kind) ? { notes: fields.notes! } : {}),
+        ...Object.fromEntries(editableFields.map((key) => [key, fields[key]!])),
       },
       id,
       body.version,
@@ -28,5 +31,5 @@ export default defineEventHandler(async (event) => {
   }
   return kind === 'blog'
     ? blogMutation(() => blogStore().save(fields, id, body.version as string))
-    : managementStore().save(kind, fields, id, body.version);
+    : repository.save(fields, id, body.version);
 });

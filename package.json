@@ -4,12 +4,12 @@
   "private": true,
   "scripts": {
     "build": "npm run typecheck && nuxt build",
-    "dev": "nuxt dev --host 0.0.0.0",
+    "dev": "nuxt dev --host 127.0.0.1",
     "generate": "nuxt generate",
     "preview": "nuxt preview",
     "postinstall": "nuxt prepare",
     "typecheck": "nuxt typecheck",
-    "test": "tsx --test tests/*.test.ts",
+    "test": "tsx --test tests/*.test.ts feature-layers/*/tests/*.test.ts",
     "test:ui": "playwright test",
     "lint": "nuxt prepare && eslint . --max-warnings 0",
     "lint:fix": "nuxt prepare && eslint . --fix",
@@ -24,6 +24,7 @@
     "markdown-it": "^15.0.2",
     "nuxt": "^4.5.2",
     "ofetch": "^1.5.1",
+    "pg": "^8.23.1",
     "reka-ui": "^2.11.0",
     "vue": "^3.5.43",
     "vue-router": "^5.3.1"
@@ -34,6 +35,7 @@
     "@playwright/test": "^1.64.0",
     "@tailwindcss/vite": "^4.3.3",
     "@types/markdown-it": "^14.2.0",
+    "@types/pg": "^8.23.1",
     "@unhead/vue": "^3.4.2",
     "eslint": "^10.12.0",
     "prettier": "^3.9.10",
@@ -49,5 +51,9 @@
     "node": ">=24.11 <25",
     "npm": ">=12 <13"
   },
-  "packageManager": "npm@12.0.2"
+  "packageManager": "npm@12.0.2",
+  "allowScripts": {
+    "esbuild": true,
+    "unrs-resolver": true
+  }
 }

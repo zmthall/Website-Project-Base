@@ -10,37 +10,6 @@ export interface ContactDetails {
   email: string;
   phone?: string;
 }
-export interface TimeSlot {
-  id: string;
-  startsAt: string;
-  endsAt: string;
-  service: string;
-  location: string;
-  provider: string;
-  timeZone: string;
-}
-export interface AvailabilityQuery {
-  date: string;
-  service: string;
-  location: string;
-  provider: string;
-}
-export interface Appointment extends TimeSlot {
-  id: string;
-  ownerId: string;
-  contact: ContactDetails;
-  meeting: string;
-  notes: string;
-  status: 'confirmed' | 'canceled';
-  version: number;
-}
-export interface AppointmentRequest extends AvailabilityQuery {
-  time: string;
-  meeting: string;
-  contact: ContactDetails;
-  notes?: string;
-  consent: true;
-}
 export interface AttachmentReference {
   id: string;
   name: string;
@@ -123,12 +92,13 @@ export interface NotificationJob {
   dueAt: string;
   status: 'queued' | 'canceled';
 }
-export interface WorkflowRepository {
-  appointments: Map<string, Appointment>;
-  estimates: Map<string, Estimate>;
-  payments: Map<string, PaymentSession>;
+export interface WorkflowCoreRepository {
   notifications: Map<string, NotificationJob>;
   attempts: Map<string, { fingerprint: string; result: unknown }>;
+}
+export interface WorkflowRepository extends WorkflowCoreRepository {
+  estimates: Map<string, Estimate>;
+  payments: Map<string, PaymentSession>;
 }
 /** Uploads adapter must authenticate ownership and verify ready/scanned private objects. */
 export interface UploadResolver {

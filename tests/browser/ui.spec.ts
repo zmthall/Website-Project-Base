@@ -6,12 +6,14 @@ test('business demo is responsive and accessible in light and dark modes', async
   const errors: string[] = [];
   page.on('pageerror', (error) => errors.push(error.message));
   await page.goto('/');
-  await page.waitForFunction(() =>
-    Boolean(
-      (document.querySelector('#__nuxt') as (Element & { __vue_app__?: unknown }) | null)
-        ?.__vue_app__,
-    ),
-  );
+  await page.waitForFunction(() => {
+    const root = document.querySelector('#__nuxt') as
+      | (Element & {
+          __vue_app__?: { config: { globalProperties: { $nuxt?: { isHydrating: boolean } } } };
+        })
+      | null;
+    return root?.__vue_app__?.config.globalProperties.$nuxt?.isHydrating === false;
+  });
   await expect(page.getByRole('heading', { level: 1 })).toContainText('Good work');
   await page.getByRole('button', { name: 'Essential only' }).click();
   for (const width of [1440, 1024, 768, 320]) {
@@ -87,12 +89,14 @@ test('all registered section variants render without client errors', async ({ pa
   const errors: string[] = [];
   page.on('pageerror', (error) => errors.push(error.message));
   await page.goto('/showcase/sections');
-  await page.waitForFunction(() =>
-    Boolean(
-      (document.querySelector('#__nuxt') as (Element & { __vue_app__?: unknown }) | null)
-        ?.__vue_app__,
-    ),
-  );
+  await page.waitForFunction(() => {
+    const root = document.querySelector('#__nuxt') as
+      | (Element & {
+          __vue_app__?: { config: { globalProperties: { $nuxt?: { isHydrating: boolean } } } };
+        })
+      | null;
+    return root?.__vue_app__?.config.globalProperties.$nuxt?.isHydrating === false;
+  });
   const select = page.getByRole('combobox', { name: 'Section variant', exact: true });
   await expect(select).toBeVisible();
   const values = await select

@@ -1,6 +1,7 @@
 <script setup lang="ts">
 import { sectionRegistry } from '../../theme/sections';
-import { demoSection, contactForm } from '../../data/demo';
+import { demoSection } from '../../data/demo';
+import { contactForm } from '../../../feature-layers/contact';
 const selected = ref('hero-split');
 const config = useWebsiteUI();
 const status = ref('');

@@ -10,6 +10,11 @@ import type {
   ResourceKind,
   LocalAuthPolicy,
 } from '../../shared/types/management';
+import {
+  createManagedContentRepository as createRepository,
+  type ContentDatabase,
+} from '../database/content-store';
+import { databaseQuery, databaseTransaction } from './integration-config';
 export class ManagementStore {
   private db: DatabaseSync;
   constructor(filename: string) {
@@ -86,4 +91,14 @@ export function managementStore() {
   return (instance ??= new ManagementStore(
     process.env.NUXT_MANAGEMENT_DATABASE || '.data/management.sqlite',
   ));
+}
+
+export function createManagedContentRepository(
+  kind: ResourceKind,
+  database: ContentDatabase = {
+    query: databaseQuery,
+    transaction: databaseTransaction,
+  },
+) {
+  return createRepository(kind, database);
 }
